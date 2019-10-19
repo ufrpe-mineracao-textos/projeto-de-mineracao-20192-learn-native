@@ -10,7 +10,7 @@ from util.preprocess import prepData, autoStemm
 # --- Tirando referências -----
 
 
-path = r'datasets/'
+path = r'../datasets/'
 data_list = os.listdir(path)
 prep = prepData(path)
 
