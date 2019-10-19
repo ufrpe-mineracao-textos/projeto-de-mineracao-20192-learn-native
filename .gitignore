@@ -1,6 +1,7 @@
 # Created by .ignore support plugin (hsz.mobi)
 .idea/
 .vscode/
+/workspace.xml
 ### TeX template
 ## Core latex/pdflatex auxiliary files:
 *.aux
