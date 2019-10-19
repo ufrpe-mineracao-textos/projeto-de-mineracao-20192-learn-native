@@ -128,6 +128,9 @@ class PrepData:
                 dataset.to_csv(path, index=False)
 
         return self.datasets
+    def get_dataset(self, dataset_name):
+        dataset = self.get_datasets()
+        return dataset.get_value(dataset_name)
 
     def get_text_pairs(self):
         self.get_datasets()
@@ -144,6 +147,7 @@ class PrepData:
             key = re.sub(r'\(', '', key)
             key = re.sub(r'\)', '', key)
             key = re.sub(r'[,]', ' -', key)
+            key = re.sub(r'[\']', '', key)
 
             pair_text = []
             print('#', end='')
@@ -184,6 +188,23 @@ class PrepData:
         })
         df.to_csv(path, index=False)
 
+    def stemming(self):
+
+        dataset = self.get_datasets()
+        data = dataset[0]
+        scripture = data['Scripture']
+        
+        for verse in scripture:
+
+            tokens = verse.split(r'\s')
+
+            for token in tokens:
+                
+                letter = token.split()
+                print(letter)
+                break
+
+
     def save_pairs(self, file_type):
 
         print('\nSaving pairs: ')
@@ -199,6 +220,7 @@ class PrepData:
                 file.write(line)
 
             file.close()
+
 
     def collapse_verses(self, ref, verses_seq):
 
