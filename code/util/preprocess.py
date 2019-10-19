@@ -12,7 +12,6 @@ from nltk import RegexpTokenizer
 
 
 class prepData:
-
     datasets = None
     datasets_list = []
     root_dir = ''
@@ -131,7 +130,7 @@ class prepData:
 
         df = pd.DataFrame({
             'text': texts,
-            'label':labels
+            'label': labels
         })
         df.to_csv(path, index=False)
 
@@ -140,17 +139,15 @@ class prepData:
         dataset = self.get_datasets()
         data = dataset[0]
         scripture = data['Scripture']
-        
+
         for verse in scripture:
 
             tokens = verse.split(r'\s')
 
             for token in tokens:
-                
                 letter = token.split()
                 print(letter)
                 break
-
 
     def save_pairs(self, file_type):
 
@@ -167,7 +164,6 @@ class prepData:
                 file.write(line)
 
             file.close()
-
 
     def collapse_verses(self, ref, verses_seq):
 
@@ -238,8 +234,8 @@ class prepData:
             print('\nProgress: #', end='')
 
             SIZE = len(b['Scripture'])
-            STEP = 1/100
-            percent = 0 
+            STEP = 1 / 100
+            percent = 0
             temp = 0
 
             for verse, ind in zip(b['Scripture'], b['Scripture'].index.values.astype(int)):
@@ -252,7 +248,7 @@ class prepData:
 
                     reference = b.loc[ind, :]
 
-                    if temp is int(SIZE*STEP):
+                    if temp is int(SIZE * STEP):
                         percent += 1
                         percent += temp
                         temp = 0
@@ -297,13 +293,13 @@ class prepData:
         for key, data in (self.datasets.keys(), self.datasets.values()):
             data.to_csv(self.root_dir + key, index=False)
 
-class autoStemm:
 
+class autoStemm:
     path_dir = ''
     raw_text = ''
     data = {
-        'letter':{},
-        'sufix':{}
+        'letter': {},
+        'sufix': {}
     }
 
     def __init__(self, text):
@@ -318,7 +314,7 @@ class autoStemm:
 
     def get_letter_freq(self):
         return self.data['letter']
-        
+
     def freq_counter(self):
 
         letter_freq = {}
@@ -327,16 +323,16 @@ class autoStemm:
         tokens = self.raw_text.split()
 
         for token in tokens:
-            print('freq_counter')
+
             for l in token:
 
                 try:
                     freq = letter_freq.get(l.lower())
                     freq += 1
                     letter_freq[l.lower()] = freq
-                
+
                 except TypeError:
-                    
+
                     freq = 1
                     letter_freq[l.lower()] = freq
 
@@ -344,7 +340,7 @@ class autoStemm:
 
                     if len(token) > size:
                         sufix = token[-size:]
-                        
+
                         try:
                             freq = sufix_freq.get(sufix)
                             freq += 1
@@ -352,14 +348,14 @@ class autoStemm:
                         except TypeError:
                             freq = 1
                             sufix_freq[sufix] = freq
-        
+
         self.data['letter'] = letter_freq
         self.data['sufix'] = sufix_freq
 
         return sufix_freq
 
     def stem_words(self):
-        
+
         signature = {}
 
         sufix_freq = self.data['sufix']
@@ -367,35 +363,33 @@ class autoStemm:
         sufixes = ' '.join(sufix_freq.keys())
 
         SIZE = len(sufixes)
-        STEP = 1/100
-        percent = 0 
+        STEP = 1 / 1000
+        percent = 0
         temp = 0
         print("Stemming: #", end='')
 
         for sufix in sufixes:
-            
-            if temp is int(SIZE*STEP):
+
+            if temp is int(SIZE * STEP):
                 percent += 1
                 temp = 0
                 print('#', end='')
-                
+
             try:
-                search = re.findall(r'\w+'+str(sufix), self.raw_text)
+                search = re.findall(r'\w+' + str(sufix), self.raw_text)
+
+                for word in search:
+
+                    stem = word.lower().replace(sufix, '')
+                    signature[sufix] = (stem, word)
 
             except re.error:
                 print("\n Sufixo: ", sufix)
                 breakpoint()
-
-            try:
-                
-                for word in search:
-                    temp += 1
-                    stem = word.lower().replace(sufix, '')
-                    signature[sufix] = (stem, word)
             except AttributeError:
                 pass
+            temp += 1
 
-            
 
         self.data['signature'] = signature
         return signature
