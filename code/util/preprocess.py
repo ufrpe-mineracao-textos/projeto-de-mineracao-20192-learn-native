@@ -294,7 +294,7 @@ class prepData:
             data.to_csv(self.root_dir + key, index=False)
 
 
-class autoStemm:
+class AutoStemm:
     path_dir = ''
     raw_text = ''
     data = {
@@ -360,18 +360,24 @@ class autoStemm:
 
         sufix_freq = self.data['sufix']
 
-        sufixes = ' '.join(sufix_freq.keys())
+        sufixes = list(sufix_freq.keys())
 
         SIZE = len(sufixes)
         STEP = 1 / 1000
         percent = 0
         temp = 0
-        print("Stemming: #", end='')
+        print("Stemming: ")
+        total = 0
 
         for sufix in sufixes:
 
+            if int(percent) >= 10:
+                total += percent
+                percent = 0
+                print('\nLoaded ', str(total) + '%')
+
             if temp is int(SIZE * STEP):
-                percent += 1
+                percent += 0.1
                 temp = 0
                 print('#', end='')
 
@@ -379,9 +385,9 @@ class autoStemm:
                 search = re.findall(r'\w+' + str(sufix), self.raw_text)
 
                 for word in search:
-
                     stem = word.lower().replace(sufix, '')
-                    signature[sufix] = (stem, word)
+                    freq = sufix_freq[sufix]
+                    signature[sufix] = (stem, word, sufix, freq)
 
             except re.error:
                 print("\n Sufixo: ", sufix)
@@ -390,6 +396,9 @@ class autoStemm:
                 pass
             temp += 1
 
-
         self.data['signature'] = signature
+
         return signature
+
+    def get_data(self):
+        return self.data

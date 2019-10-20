@@ -1,4 +1,3 @@
-
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.feature_extraction.text import TfidfTransformer
 import pandas as pd
@@ -13,7 +12,10 @@ from nltk import RegexpTokenizer
 
 __name__ = "preprocess.py"
 
-def get_noise(new=[]):
+
+def get_noise(new=None):
+    if new is None:
+        new = []
     livros = []
     penta = ['Gênesis', 'Êxodo', 'Levítico', 'Números', 'Deuteronômio']
 
@@ -87,7 +89,7 @@ def count_words():
     print("Counting shape: ", count_vec.shape)
 
     # Applying TF_IDF transform
-    
+
     tf_idf = TfidfTransformer()
     tf_idf_vec = tf_idf.fit_transform(count_vec)
     print("TF-IDF shape: ", tf_idf_vec.shape)
