@@ -1,0 +1,11 @@
+Guajajara - Novo Testamento.csv<attribute '__traceback__' of 'BaseException' objects>
+Guarani Mby� - Novo Testamento.csv<attribute '__traceback__' of 'BaseException' objects>
+Kadiw�u - Novo Testamento.csv<attribute '__traceback__' of 'BaseException' objects>
+Kaiw� - Novo Testamento.csv<attribute '__traceback__' of 'BaseException' objects>
+kayap� - Novo Testamento.csv<attribute '__traceback__' of 'BaseException' objects>
+Macushi - Novo Testamento.csv<attribute '__traceback__' of 'BaseException' objects>
+Maxakal� - Novo Testamento.csv<attribute '__traceback__' of 'BaseException' objects>
+Nad�b - Novo Testamento.csv<attribute '__traceback__' of 'BaseException' objects>
+Rikbaktsa - Novo Testamento.csv<attribute '__traceback__' of 'BaseException' objects>
+Terena - Novo Testamento.csv<attribute '__traceback__' of 'BaseException' objects>
+Apurinã  - Novo Testamento.csv
