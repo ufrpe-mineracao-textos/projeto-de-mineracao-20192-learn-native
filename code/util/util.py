@@ -96,7 +96,6 @@ def save_stemms(stemmed_data, path):
 
     df.to_csv(path, index=False)
 
-
 def get_noise(new=None):
     if new is None:
         new = []
