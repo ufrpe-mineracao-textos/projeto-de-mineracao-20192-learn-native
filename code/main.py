@@ -62,6 +62,8 @@ def classify():
 
 
 def main():
+    for name in data_list:
+        stem_words(name)
     classify()
 
 if __name__ == "__main__":
