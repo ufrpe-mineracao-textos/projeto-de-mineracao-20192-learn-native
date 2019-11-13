@@ -1,47 +1,70 @@
-import os
-import re
 import math
-import string
-from itertools import combinations
-
-import nltk
+import os, re
+import threading
 import pandas as pd
-from nltk.tokenize import RegexpTokenizer
-from util.preprocess import prepData, AutoStemm
+from util.preprocess import PrepData, AutoStem
+from language_clf import LangClf
+from util.util import count_words, stem_text
+import pprint
+from nltk import RegexpTokenizer
 
 # --- Tirando referências -----
 
-path = r'../datasets/'
+path = r'Resources/datasets/'
+stems_path = r'Resources/stems/'
 data_list = os.listdir(path)
-prep = prepData(path)
-
-# prep.label_data('text-label.csv')
+prep = PrepData(path)
 dataset = prep.get_datasets()
-data = dataset[data_list[0]]
-scripture = data['Scripture']
 
-stem = AutoStemm(scripture)
+def stem_words(name):
+    data = pd.read_csv(path + name)
+    label = name.replace('.csv', '')
+    print('Processing: ', label)
+    scripture = data['Scripture']
 
-suf_freq = stem.freq_counter()
+    stem = AutoStem(scripture)
+    stem.freq_counter()
 
-stemmed_data = stem.stem_words()
+    stem.stem_words()
+    data = {label:list(filter(lambda x: type(x) == str, stem.select_stem()))}
 
-stems = []
-words = []
-sufix = []
-s_freq = []
-# (stem, word, sufix, freq)
-for el in stemmed_data.values():
-    stems.append(el[0])
-    words.append(el[1])
-    sufix.append(el[2])
-    s_freq.append(el[3])
+    df = pd.DataFrame(data)
+    df.to_csv(stems_path + name, index=False)
+    print()
 
-df = pd.DataFrame({
-    'stems': stems,
-    'words': words,
-    'sufix': sufix,
-    'freq': s_freq
-})
 
-df.to_csv('stem.csv', index=False)
+def classify():
+    trains = []
+    testes = {}
+    stems_list = os.listdir(stems_path)
+    stems_dic = {}
+
+    for name in stems_list:
+        data = pd.read_csv(path + name, encoding='utf-8')
+        train_data = data[data['Book'] < 44]['Scripture']
+        test_data = data[data['Book'] >= 44]['Scripture']
+        trains.append(train_data)
+        testes[name.replace('.csv', '')] = test_data
+        try:
+            stems_dic[name.replace('.csv', '')] = pd.read_csv(stems_path + name, encoding='utf-8')
+        except pd.errors.EmptyDataError:
+            pass
+
+    prep = PrepData(path)
+    lang_dic = prep.get_datasets()
+
+    clf = LangClf(stems_dic, lang_dic)
+    clf.fit(trains, stems_list)
+
+    for key, txt in zip(testes.keys(), testes.values()):
+        print('Predicting {}...'.format(key))
+        clf.predict(txt)
+
+
+def main():
+    for name in data_list:
+        stem_words(name)
+    classify()
+
+if __name__ == "__main__":
+    main()

@@ -1,17 +1,18 @@
-from aifc import Error
-from itertools import permutations
-import pandas as pd
-import matplotlib.pyplot as plt
-import random
-import re
-import numpy as np
-from numpy.random.mtrand import shuffle
-from pandas import Series
+import operator
 import os
+import re
+import sys
+import threading
+import time
+from itertools import permutations
+import numpy as np
+import pandas as pd
 from nltk import RegexpTokenizer
+from numpy.random.mtrand import shuffle
+from util.util import coherence
+import pprint
 
-
-class prepData:
+class PrepData:
     datasets = None
     datasets_list = []
     root_dir = ''
@@ -22,8 +23,8 @@ class prepData:
         self.datasets_list = os.listdir(dir_path)
         self.datasets = {}.fromkeys(self.datasets_list)
 
-    def set_root_dir(self, path_prefix):
-        self.root_dir = path_prefix
+    def set_root_dir(self, dir_path):
+        self.root_dir = dir_path
 
     def get_prefix(self):
         return self.root_dir
@@ -294,37 +295,100 @@ class prepData:
             data.to_csv(self.root_dir + key, index=False)
 
 
-class AutoStemm:
+def letter_count(token, count_dic):
+    for l in token[:-1]:
+
+        try:
+            freq = count_dic.get(l.lower())
+            freq += 1
+            count_dic[l.lower()] = freq
+        except TypeError:
+            freq = 1
+            count_dic[l.lower()] = freq
+    return count_dic
+
+
+def suffix_count(token, count_dic):
+    for size in range(1, 8):
+
+        if len(token) > size + 2:
+            suffix = token[-size:-1]
+
+            try:
+                if suffix:
+                    freq = count_dic.get(suffix)
+                    freq += 1
+                    count_dic[suffix] = freq
+            except TypeError:
+                freq = 1
+                count_dic[suffix] = freq
+
+    return count_dic
+
+
+def calculate_freq(count_dic):
+    freq_dic = {}
+    total_count = sum(count_dic.values())
+
+    for key, count in zip(count_dic.keys(), count_dic.values()):
+        freq_dic[key] = count / total_count
+
+    return freq_dic
+
+
+class AutoStem:
     path_dir = ''
     raw_text = ''
+    candidates = None
     data = {
-        'letter': {},
-        'sufix': {}
+        'letter': None,
+        'suffix': None,
     }
+    top_suffixes = None
+    suffixes_stem = None
+    suffix_coh = None
 
     def __init__(self, text):
+        self.candidates = {}
+        self.suffixes_stem = {}
+        self.suffix_coh = set()
+        self.data['letter'] = {}
+        self.data['suffix'] = {}
 
+        text = list(filter(lambda x: type(x) == str, text))
         tokenizer = RegexpTokenizer(r'\w+', flags=re.UNICODE)
         tokens = tokenizer.tokenize(' '.join(text).lower())
 
-        self.raw_text = ' '.join(tokens)
+        new_tokens = []
 
-    def get_sufix_freq(self):
-        return self.data['sufix']
+        for token in tokens:
+            token = ''.join([letter for letter in token if not letter.isdigit()])
+            new_token = token + '#'
+            new_tokens.append(new_token)
+
+        self.raw_text = ' '.join(new_tokens)
+
+    def get_suffix_freq(self):
+        suffix_dic = self.data['suffix']
+        return suffix_dic
 
     def get_letter_freq(self):
-        return self.data['letter']
+        letter_dic = self.data['letter']
+        return letter_dic
+
+    def get_text(self):
+        return self.raw_text
 
     def freq_counter(self):
 
         letter_freq = {}
-        sufix_freq = {}
+        suffix_freq = {}
 
         tokens = self.raw_text.split()
 
         for token in tokens:
 
-            for l in token:
+            for l in token[:-1]:
 
                 try:
                     freq = letter_freq.get(l.lower())
@@ -339,66 +403,93 @@ class AutoStemm:
                 for size in range(1, 8):
 
                     if len(token) > size:
-                        sufix = token[-size:]
+                        suffix = token[-size:-1]
 
                         try:
-                            freq = sufix_freq.get(sufix)
+                            freq = suffix_freq.get(suffix)
                             freq += 1
-                            sufix_freq[sufix] = freq
+                            suffix_freq[suffix] = freq
                         except TypeError:
                             freq = 1
-                            sufix_freq[sufix] = freq
+                            suffix_freq[suffix] = freq
 
+        total_count = sum(letter_freq.values())
+
+        for key, count in zip(letter_freq.keys(), letter_freq.values()):
+            letter_freq[key] = count / total_count
+
+        total_count = sum(suffix_freq.values())
+
+        for key, count in zip(suffix_freq.keys(), suffix_freq.values()):
+            suffix_freq[key] = count / total_count
+        suffix_freq.pop('')
         self.data['letter'] = letter_freq
-        self.data['sufix'] = sufix_freq
+        self.data['suffix'] = suffix_freq
 
-        return sufix_freq
+        return suffix_freq
+
+    def select_stem(self, threshold=100):
+        """
+        Seleciona os melhores stems 
+        Key args:
+
+        threshold defines the number of suffix evaluated
+        """
+        selected = []
+        top_suffixes = [tup[0] for tup in self.suffix_coh]
+
+        for suffix in top_suffixes[:threshold]:
+            stems = self.suffixes_stem[suffix]
+            if len(set(stems)) >= 2:
+                for stem in stems:
+                    suffix = self.candidates[stem]
+                    if len(set(suffix)) <= 5:
+                        tokenizer = RegexpTokenizer(r'\w+', flags=re.UNICODE)
+                        stem = ' '.join(tokenizer.tokenize(stem.lower()))
+                        selected.append(stem)
+        return selected
 
     def stem_words(self):
+        """
+        Faz o stem das palavras do texto baseado na coherence 
+        """
+        
+        suffix_freq = self.data['suffix']
 
-        signature = {}
+        suffixes = list(suffix_freq.keys())
 
-        sufix_freq = self.data['sufix']
-
-        sufixes = list(sufix_freq.keys())
-
-        SIZE = len(sufixes)
-        STEP = 1 / 1000
-        percent = 0
         temp = 0
         print("Stemming: ")
-        total = 0
+        total = len(suffixes)
+        print('Loading: ', end='')
 
-        for sufix in sufixes:
+        print(suffixes[:10])
+        for suffix in suffixes:
+            self.suffixes_stem[suffix] = set()
+            sys.stdout.write('\r' + 'Loading: {:.2f}'.format(temp / total * 100) + '%')
+            sys.stdout.flush()
 
-            if int(percent) >= 10:
-                total += percent
-                percent = 0
-                print('\nLoaded ', str(total) + '%')
+            search = re.findall(r'\w+' + str(suffix) + '#', self.raw_text)
 
-            if temp is int(SIZE * STEP):
-                percent += 0.1
-                temp = 0
-                print('#', end='')
+            freq = suffix_freq[suffix]
+            coh = coherence((suffix, freq), self.data['letter'])
+            self.suffix_coh.add((suffix, coh))
 
-            try:
-                search = re.findall(r'\w+' + str(sufix), self.raw_text)
+            for word in set(search):
+                stem = word.lower().replace(suffix + '#', '')
+                self.suffixes_stem[suffix].add(stem) # Guarda os stems associados ao sufixo 
+                try:
+                    self.candidates[stem].add(suffix)
+                except KeyError:
+                    self.candidates[stem] = set(suffix) # Guarda o sufixo associado ao stem
 
-                for word in search:
-                    stem = word.lower().replace(sufix, '')
-                    freq = sufix_freq[sufix]
-                    signature[sufix] = (stem, word, sufix, freq)
-
-            except re.error:
-                print("\n Sufixo: ", sufix)
-                breakpoint()
-            except AttributeError:
-                pass
             temp += 1
-
-        self.data['signature'] = signature
-
-        return signature
+           
+        self.suffix_coh = sorted(self.suffix_coh, key=lambda tup: tup[1], reverse=True)
 
     def get_data(self):
         return self.data
+
+    def signatures(self):
+        return self.candidates
+
