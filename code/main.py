@@ -60,6 +60,7 @@ def classify():
         print('Predicting {}...'.format(key))
         clf.predict(txt)
 
+
 def main():
     classify()
 
