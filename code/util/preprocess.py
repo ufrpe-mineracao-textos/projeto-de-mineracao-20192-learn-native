@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 from nltk import RegexpTokenizer
 from numpy.random.mtrand import shuffle
-from util.util import coherence
+from util import coherence
 import pprint
 
 class PrepData:
