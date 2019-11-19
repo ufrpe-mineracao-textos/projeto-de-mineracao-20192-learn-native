@@ -12,6 +12,7 @@ from numpy.random.mtrand import shuffle
 from util.util import coherence
 import pprint
 
+
 class PrepData:
     datasets = None
     datasets_list = []
@@ -336,6 +337,15 @@ def calculate_freq(count_dic):
     return freq_dic
 
 
+def word_count(text, words):
+    word_freq = {}
+    for word in words:
+        counting = len(list(re.findall(word, text)))
+        word_freq[word] = counting
+
+    return sorted(word_freq.items(), key=lambda tup: tup[1], reverse=True)
+
+
 class AutoStem:
     path_dir = ''
     raw_text = ''
@@ -360,11 +370,14 @@ class AutoStem:
         tokens = tokenizer.tokenize(' '.join(text).lower())
 
         new_tokens = []
+        w_freq = word_count(' '.join(tokens), set(tokens))
 
+        stop_list = [tup[0] for tup in w_freq[:300]]
         for token in tokens:
-            token = ''.join([letter for letter in token if not letter.isdigit()])
-            new_token = token + '#'
-            new_tokens.append(new_token)
+            if token not in stop_list:
+                token = ''.join([letter for letter in token if not letter.isdigit()])
+                new_token = token + '#'
+                new_tokens.append(new_token)
 
         self.raw_text = ' '.join(new_tokens)
 
@@ -453,7 +466,7 @@ class AutoStem:
         """
         Faz o stem das palavras do texto baseado na coherence 
         """
-        
+
         suffix_freq = self.data['suffix']
 
         suffixes = list(suffix_freq.keys())
@@ -477,14 +490,14 @@ class AutoStem:
 
             for word in set(search):
                 stem = word.lower().replace(suffix + '#', '')
-                self.suffixes_stem[suffix].add(stem) # Guarda os stems associados ao sufixo 
+                self.suffixes_stem[suffix].add(stem)  # Guarda os stems associados ao sufixo
                 try:
                     self.candidates[stem].add(suffix)
                 except KeyError:
-                    self.candidates[stem] = set(suffix) # Guarda o sufixo associado ao stem
+                    self.candidates[stem] = set(suffix)  # Guarda o sufixo associado ao stem
 
             temp += 1
-           
+
         self.suffix_coh = sorted(self.suffix_coh, key=lambda tup: tup[1], reverse=True)
 
     def get_data(self):
@@ -492,4 +505,3 @@ class AutoStem:
 
     def signatures(self):
         return self.candidates
-
