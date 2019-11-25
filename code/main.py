@@ -10,11 +10,12 @@ from nltk import RegexpTokenizer
 
 # --- Tirando referências -----
 
-path = r'Resources/datasets/'
-stems_path = r'Resources/stems/'
+path = r'../Resources/datasets/'
+stems_path = r'../Resources/stems/'
 data_list = os.listdir(path)
 prep = PrepData(path)
 dataset = prep.get_datasets()
+
 
 def stem_words(name):
     data = pd.read_csv(path + name)
@@ -26,7 +27,7 @@ def stem_words(name):
     stem.freq_counter()
 
     stem.stem_words()
-    data = {label:list(filter(lambda x: type(x) == str, stem.select_stem()))}
+    data = {label: list(filter(lambda x: type(x) == str, stem.select_stem()))}
 
     df = pd.DataFrame(data)
     df.to_csv(stems_path + name, index=False)
@@ -65,6 +66,7 @@ def main():
     for name in data_list:
         stem_words(name)
     classify()
+
 
 if __name__ == "__main__":
     main()
