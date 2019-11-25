@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 from nltk import RegexpTokenizer
 from numpy.random.mtrand import shuffle
-from util.util import coherence
+from util.util import coherence, word_count, text_prep
 import pprint
 
 
@@ -296,54 +296,12 @@ class PrepData:
             data.to_csv(self.root_dir + key, index=False)
 
 
-def letter_count(token, count_dic):
-    for l in token[:-1]:
-
-        try:
-            freq = count_dic.get(l.lower())
-            freq += 1
-            count_dic[l.lower()] = freq
-        except TypeError:
-            freq = 1
-            count_dic[l.lower()] = freq
-    return count_dic
-
-
-def suffix_count(token, count_dic):
-    for size in range(1, 8):
-
-        if len(token) > size + 2:
-            suffix = token[-size:-1]
-
-            try:
-                if suffix:
-                    freq = count_dic.get(suffix)
-                    freq += 1
-                    count_dic[suffix] = freq
-            except TypeError:
-                freq = 1
-                count_dic[suffix] = freq
-
-    return count_dic
-
-
-def calculate_freq(count_dic):
-    freq_dic = {}
-    total_count = sum(count_dic.values())
-
-    for key, count in zip(count_dic.keys(), count_dic.values()):
-        freq_dic[key] = count / total_count
-
-    return freq_dic
-
-
-def word_count(text, words):
-    word_freq = {}
-    for word in words:
-        counting = len(list(re.findall(word, text)))
-        word_freq[word] = counting
-
-    return sorted(word_freq.items(), key=lambda tup: tup[1], reverse=True)
+def stem_words(text, label):
+    stem = AutoStem(text)
+    stem.freq_counter()
+    stem.stem_words()
+    data = {label: list(filter(lambda x: type(x) == str, stem.select_stem()))}
+    return data
 
 
 class AutoStem:
@@ -359,27 +317,18 @@ class AutoStem:
     suffix_coh = None
 
     def __init__(self, text):
+
+        """
+        Initialize the required variables
+        :param text:
+        """
         self.candidates = {}
         self.suffixes_stem = {}
         self.suffix_coh = set()
         self.data['letter'] = {}
         self.data['suffix'] = {}
 
-        text = list(filter(lambda x: type(x) == str, text))
-        tokenizer = RegexpTokenizer(r'\w+', flags=re.UNICODE)
-        tokens = tokenizer.tokenize(' '.join(text).lower())
-
-        new_tokens = []
-        w_freq = word_count(' '.join(tokens), set(tokens))
-
-        stop_list = [tup[0] for tup in w_freq[:300]]
-        for token in tokens:
-            if token not in stop_list:
-                token = ''.join([letter for letter in token if not letter.isdigit()])
-                new_token = token + '#'
-                new_tokens.append(new_token)
-
-        self.raw_text = ' '.join(new_tokens)
+        self.raw_text = text_prep(text)
 
     def get_suffix_freq(self):
         suffix_dic = self.data['suffix']

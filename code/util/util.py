@@ -1,10 +1,93 @@
 import math
+import re
 import sys
 import time
-from sklearn.feature_extraction.text import CountVectorizer
-from sklearn.feature_extraction.text import TfidfTransformer
 import pandas as pd
-import os, re
+from nltk import RegexpTokenizer
+import matplotlib.pyplot as plt
+
+
+def draw_plot(params):
+    x = params['x']
+    y = params['y']
+    print(len(x))
+    print(len(y))
+    plt.plot(x, y)
+    plt.xticks(rotation=45)
+    plt.show()
+
+
+def text_prep(text):
+    """
+    Remove partes indesejadas como números e palavras na stop_list. Além disso adicionar # ao final da
+    palavra a fim de facilitar no stems de uma única letra
+    :param text:
+    :return:
+    """
+    text = list(filter(lambda x: type(x) == str, text))
+    tokenizer = RegexpTokenizer(r'\w+', flags=re.UNICODE)
+    tokens = tokenizer.tokenize(' '.join(text).lower())
+
+    new_tokens = []
+    w_freq = word_count(' '.join(tokens), set(tokens))
+
+    stop_list = [tup[0] for tup in w_freq[:300]]
+    for token in tokens:
+        if token not in stop_list:
+            token = ''.join([letter for letter in token if not letter.isdigit()])
+            new_token = token + '#'
+            new_tokens.append(new_token)
+    return ' '.join(new_tokens)
+
+
+def letter_count(token, count_dic):
+    for l in token[:-1]:
+
+        try:
+            freq = count_dic.get(l.lower())
+            freq += 1
+            count_dic[l.lower()] = freq
+        except TypeError:
+            freq = 1
+            count_dic[l.lower()] = freq
+    return count_dic
+
+
+def suffix_count(token, count_dic):
+    for size in range(1, 8):
+
+        if len(token) > size + 2:
+            suffix = token[-size:-1]
+
+            try:
+                if suffix:
+                    freq = count_dic.get(suffix)
+                    freq += 1
+                    count_dic[suffix] = freq
+            except TypeError:
+                freq = 1
+                count_dic[suffix] = freq
+
+    return count_dic
+
+
+def calculate_freq(count_dic):
+    freq_dic = {}
+    total_count = sum(count_dic.values())
+
+    for key, count in zip(count_dic.keys(), count_dic.values()):
+        freq_dic[key] = count / total_count
+
+    return freq_dic
+
+
+def word_count(text, words):
+    word_freq = {}
+    for word in words:
+        counting = len(list(re.findall(word, text)))
+        word_freq[word] = counting
+
+    return sorted(word_freq.items(), key=lambda tup: tup[1], reverse=True)
 
 
 def count_words(text, threshold=100):
@@ -26,9 +109,8 @@ def count_words(text, threshold=100):
 
 
 def stem_text(text, stems):
-
     text = ' '.join(list(filter(lambda x: type(x) == str, text))).lower()
-    
+
     for stem in stems:
         words = re.findall(stem + r'\w+', text)
         for word in words:
@@ -61,7 +143,6 @@ def to_dic(list_tup):
 
 
 def coherence(suffix_data, letter_freq):
-
     suffixes = suffix_data[0]
     s_freq = suffix_data[1]
     ls_freq = 1
@@ -134,5 +215,3 @@ def get_noise(new=None):
     # Remember create file pattern to remove undesired text
     noise.extend(new)
     return noise
-
-
