@@ -10,8 +10,7 @@ import matplotlib.pyplot as plt
 def draw_plot(params):
     x = params['x']
     y = params['y']
-    print(len(x))
-    print(len(y))
+
     plt.plot(x, y)
     plt.xticks(rotation=45)
     plt.show()
@@ -37,6 +36,7 @@ def text_prep(text):
             token = ''.join([letter for letter in token if not letter.isdigit()])
             new_token = token + '#'
             new_tokens.append(new_token)
+
     return ' '.join(new_tokens)
 
 

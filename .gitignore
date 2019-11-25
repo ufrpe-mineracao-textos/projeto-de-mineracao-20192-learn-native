@@ -137,3 +137,7 @@ dmypy.json
 .idea/vcs.xml
 .idea/webResources.xml
 code/util/animation.py
+!/docs/sbc/main.aux
+!/docs/sbc/main.log
+!/docs/sbc/main.dvi
+
