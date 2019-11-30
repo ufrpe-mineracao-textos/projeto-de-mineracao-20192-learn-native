@@ -19,6 +19,8 @@ class LangClf:
             stem_dic = {}
         self.stem_dic = stem_dic
         self.lang_dic = lang_dic
+        self.lang_count_dic = {}
+        self.text_label = ''
 
     def fit(self, train_texts, labels):
 
@@ -31,19 +33,32 @@ class LangClf:
 
     def predict(self, text, threshold=100):
 
+        """
+          Predicts the language of a given language
+        :param text: The text that must be identified
+        :param threshold: The threshold for the most frequent words to be selected
+        :return: return the predicted language with its similarity.
+        """
         sim_list = []
         for key in self.lang_count_dic.keys():
 
+            # Preprocess the test text and get the words count
             stemmed_text = stem_text(text, self.stem_dic[key.replace('.csv', '')])
             words_count = count_words(stemmed_text)
             test_words = [w[0] for w in words_count]
+
+            # Obtain the words count in the training set
             words_tup = self.lang_count_dic[key]
             train_words = [w[0] for w in words_tup]
+
+            # Calculate the similarity
             similarity = 0
             for w_t in test_words:
                 if w_t in train_words:
                     similarity += 1
                     
             sim_list.append((key.replace('.csv', ''), similarity / threshold))
+
         match = sorted(sim_list, key=lambda kv: kv[1], reverse=True)[0]
-        print('Match: {} with similarity: {}%'.format(match[0].replace('.csv', ''), match[1]))
+
+        return match[0].replace('.csv', ''), match[1]

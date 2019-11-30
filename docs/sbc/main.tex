@@ -24,7 +24,7 @@
      
 \sloppy
 
-\title{Instructions for Authors of SBC Conferences\\ Papers and Abstracts}
+\title{Native Language Classification\\ with Minimal Resources}
 
 \author{Luciana P. Nedel\inst{1}, Rafael H. Bordini\inst{2}, Flávio Rech
   Wagner\inst{1}, Jomi F. Hübner\inst{3} }
@@ -43,120 +43,120 @@
   jomi@inf.furb.br}
 }
 
-\begin{document} 
+\begin{document}
 
 \maketitle
 
 \begin{abstract}
-  This paper 
+  This meta-paper describes the style to be used in articles and short papers
+  for SBC conferences.
+  For papers in English, you should add just an abstract
+  while for the papers in Portuguese, we also ask for an abstract in
+  Portuguese (``resumo'').
+  In both cases, abstracts should not have more than
+  10 lines and must be in the first page of the paper.
 \end{abstract}
 
 
-\section{General Information}
+\section{Introduction}\label{sec:introduction}
 
-All full papers and posters (short papers) submitted to some SBC conference,
-including any supporting documents, should be written in English or in
-Portuguese. The format paper should be A4 with single column, 3.5 cm for upper
-margin, 2.5 cm for bottom margin and 3.0 cm for lateral margins, without
-headers or footers. The main font must be Times, 12 point nominal size, with 6
-points of space before each paragraph. Page numbers must be suppressed.
+According to the International Labour Organisation (ILO) 169 agreement over native people;
+it is possible to identify a group of indigenous using some aspects.
+The considered features are the territory, identity recognition, common origin, culture and language \cite{povos_indigenas}.
+Furthermore, according with \cite{povos_indigenas} there are 45 million native people only in Latin American.
+It shows the importance of the study of their native languages and the use of computational resources to make it accessible.
 
-Full papers must respect the page limits defined by the conference.
-Conferences that publish just abstracts ask for \textbf{one}-page texts.
-
-\section{First Page} \label{sec:firstpage}
-
-The first page must display the paper title, the name and address of the
-authors, the abstract in English and ``resumo'' in Portuguese (``resumos'' are
-required only for papers written in Portuguese). The title must be centered
-over the whole page, in 16 point boldface font and with 12 points of space
-before itself. Author names must be centered in 12 point font, bold, all of
-them disposed in the same line, separated by commas and with 12 points of
-space after the title. Addresses must be centered in 12 point font, also with
-12 points of space after the authors' names. E-mail addresses should be
-written using font Courier New, 10 point nominal size, with 6 points of space
-before and 6 points of space after.
-
-The abstract and ``resumo'' (if is the case) must be in 12 point Times font,
-indented 0.8cm on both sides. The word \textbf{Abstract} and \textbf{Resumo},
-should be written in boldface and must precede the text.
-
-\section{CD-ROMs and Printed Proceedings}
-
-In some conferences, the papers are published on CD-ROM while only the
-abstract is published in the printed Proceedings. In this case, authors are
-invited to prepare two final versions of the paper. One, complete, to be
-published on the CD and the other, containing only the first page, with
-abstract and ``resumo'' (for papers in Portuguese).
-
-\section{Sections and Paragraphs}
-
-Section titles must be in boldface, 13pt, flush left. There should be an extra
-12 pt of space before each title. Section numbering is optional. The first
-paragraph of each section should not be indented, while the first lines of
-subsequent paragraphs should be indented by 1.27 cm.
-
-\subsection{Subsections}
-
-The subsection titles must be in boldface, 12pt, flush left.
-
-\section{Figures and Captions}\label{sec:figs}
+Besides, computers have taken a great part of our lives, mainly in the day to day tasks \cite{matthews2016introduction}.
+As the most part of the human communication is made by natural language\cite{matthews2016introduction}.
+It would be of great importance the development of a process to make the human language able to be understood by the computer \cite{matthews2016introduction}.
+One example of the the use of natural language processing in our day to day is the google translator \cite{google}.
 
 
-Figure and table captions should be centered if less than one line
-(Figure~\ref{fig:exampleFig1}), otherwise justified and indented by 0.8cm on
-both margins, as shown in Figure~\ref{fig:exampleFig2}. The caption font must
-be Helvetica, 10 point, boldface, with 6 points of space before and after each
-caption.
+Part of the task made by the google translator is classify a given text by the language and therefore is a good example of the purpose of this paper.
+To accomplish this task can be used the natural language processing.
+It comes from the result of the use of artificial intelligence and linguistic\cite{10.1136/amiajnl-2011-000464}.
+Besides, it seeks to fill this gap between computer and the human communication.
+ In addition, it has suffered a great explosion of works focusing in several languages groups\cite{peters2002evaluation}.
 
-\begin{figure}[ht]
+
+Therefore, considering the great importance of the native languages and its identification for a computational system.
+
+We use the tools of the natural language processing and information retrieval to identify and classify 26 Brazilian native languages and the Portuguese.
+Our task could be possible thanks to the availability of the New Testament of Bible that after some preprocessing served as a database for our project.
+
+\section{Brazilian Native Languages} \label{sec:firstpage}
+ Although, according with \cite{povos_indigenas} there are 900 thousand native people only in Brazil.
+
+One of the biggest difficulties in natural language processing for indigenous languages is the lack of resources.
+
+Once the languages like the ones from Tupi have a oral tradition;
+there are only a few texts available for computational analyses.
+
+Besides, the great part of languages native of Latin American, have a poly-synthetic nature.
+
+It means that one single word can represent a whole order, and the Tupi is one of them \cite{lemos1956tupi}.
+This same issue was faced on \cite{DBLP:journals/corr/abs-1804-06024} study.
+
+The found technique to handle this problem was divide the words in the smallest morphological component to provide a wider vocabulary diverse.
+Another important issue is that poly-synthetic languages of different vocabulary may have different quantities of information.
+
+
+\section{Stemming}\label{sec:stemming}
+
+The process of stemming is to reduce a word to its canonical form \cite{Goldsmith:2000:ALS:648263.753378}.
+It helps us to control a database of a large set documents in the case of a identification system\cite{Goldsmith:2000:ALS:648263.753378}.
+Based on that, we build the automatic stem proposed by~\cite{Goldsmith:2000:ALS:648263}.
+It considers the coherence of several possible suffixes.
+The coherence is calculated considering the last seven or fewer letters of a word using the equation (1).
+As proposed we removed the 300 most frequent words.
+After we select a stem generated by a suffix if there are at least two stems related to it.
+We also consider that any used suffixes must be associated with no more than 5 stems.
+Finally replaced the words for their stems.
+The number of stems for each language may vary and they are shown in the figure 2.
+
+\begin{figure}[h!]
 \centering
-\includegraphics[width=.5\textwidth]{fig1.jpg}
-\caption{A typical figure}
-\label{fig:exampleFig1}
-\end{figure}
-
-\begin{figure}[ht]
-\centering
-\includegraphics[width=.3\textwidth]{fig2.jpg}
-\caption{This figure is an example of a figure caption taking more than one
-  line and justified considering margins mentioned in Section~\ref{sec:figs}.}
-\label{fig:exampleFig2}
-\end{figure}
-
-In tables, try to avoid the use of colored or shaded backgrounds, and avoid
-thick, doubled, or unnecessary framing lines. When reporting empirical data,
-do not use more decimal digits than warranted by their precision and
-reproducibility. Table caption must be placed before the table (see Table 1)
-and the font used must also be Helvetica, 10 point, boldface, with 6 points of
-space before and after each caption.
-
-\begin{table}[ht]
-\centering
+\includegraphics[width=.7\textwidth]{images/fig1.png}
 \caption{Variables to be considered on the evaluation of interaction
-  techniques}
-\label{tab:exTable1}
-\includegraphics[width=.7\textwidth]{table.jpg}
-\end{table}
+techniques}
+\label{fig:Fig1}
+\end{figure}
 
-\section{Images}
 
-All images and illustrations should be in black-and-white, or gray tones,
-excepting for the papers that will be electronically available (on CD-ROMs,
-internet, etc.). The image resolution on paper should be about 600 dpi for
-black-and-white images, and 150-300 dpi for grayscale images.  Do not include
-images with excessive resolution, as they may take hours to print, without any
-visible difference in the result. 
+\section{Multi-Language Classification}\label{sec:multi-language-classification}
 
-\section{References}
 
-Bibliographic references must be unambiguous and uniform.  We recommend giving
-the author names references in brackets, e.g. \cite{knuth:84},
-\cite{boulic:91}, and \cite{smith:99}.
 
-The references must be listed using 12 point font size, with 6 points of space
-before each reference. The first line of each reference should not be
-indented, while the subsequent should be indented by 0.5 cm.
+\section{Results}\label{sec:results}
+
+Our classification process consisted of select the 100 most frequent words of each language both in training and test set.
+It was made after we use the automatic stem explained in the last section.
+The training set was the first 4 books of the bible available at
+\cite{angelo} and the remaining books were considered as test set.
+It is important to note that a preprocessing was required before we train and test.
+First we removed some HTML tags presented in the original file.
+Further, we found verses that were joined in one the version of the bible, but not in the others.
+Our work consisted of joined all verses where it was needed.
+Finally, we check if each 100 most frequent of test was also present in the training set.
+The result found is exposed in the figure 2.
+
+
+\begin{figure}[h!]
+\centering
+\includegraphics[width=.7\textwidth]{images/fig2.png}
+\caption{Variables to be considered on the evaluation of interaction
+techniques}
+\label{fig:Fig2}
+\end{figure}
+
+\section{Conclusion}\label{sec:conclusion}
+
+Considering that, even thought a world wide used translator as the google one has a lack of languages~\cite{google}.
+This work tries to fill this gap introducing a method to identify Brazilian native languages.
+Considering the results it is possible to affirm that even with a small text corpus it is possible to build a simple language identifier.
+It was one small step in the direction of identification and classification of Brazilian languages.
+Because of the simple method it can be simply added as part of a translation software as in google translator.
+Furthermore, we made Brazilian native languages more accessible and ameliorate the exploration of documents writing in one of the native languages here cited.
 
 \bibliographystyle{sbc}
 \bibliography{sbc-template}
