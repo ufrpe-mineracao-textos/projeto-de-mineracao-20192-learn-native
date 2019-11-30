@@ -12,7 +12,11 @@ def draw_plot(params):
     y = params['y']
 
     plt.plot(x, y)
+    plt.title(params['title'])
     plt.xticks(rotation=45)
+    plt.xlabel(params['x_label'])
+    plt.ylabel(params['y_label'])
+    plt.figure(dpi=300)
     plt.show()
 
 
