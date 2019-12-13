@@ -15,7 +15,7 @@ from nltk import RegexpTokenizer
 
 # --- Tirando referências -----
 
-path = r'../Resources/datasets/'
+path = r'../Resources/bibles/'
 stems_path = r'../Resources/stems/'
 data_list = os.listdir(path)
 prep = PrepData(path)
