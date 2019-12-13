@@ -17,9 +17,6 @@ from nltk import RegexpTokenizer
 
 path = r'../Resources/bibles/'
 stems_path = r'../Resources/stems/'
-data_list = os.listdir(path)
-prep = TextPreprocess(path)
-dataset = prep.get_datasets()
 
 PATH = r'../out/table'
 
@@ -123,7 +120,6 @@ def classify(threshold=44):
 def stems_analysis():
     stems = []
     for label in os.listdir(stems_path):
-
         size = len(pd.read_csv(stems_path + label))
         stems.append((label.replace('.csv', ''), size))
 
@@ -150,16 +146,15 @@ def format_result(result):
     return x, y
 
 
-def main():
+def get_results():
     """for name in data_list:
-        text = pd.read_csv(path + name, encoding='utf8')['Scripture']
-        stem_words(text, name)"""
+            text = pd.read_csv(path + name, encoding='utf8')['Scripture']
+            stem_words(text, name)"""
     means = []
     stds = []
     init_table()
     for threshold in range(41, 45):
-
-        print('Threshold: ', threshold-1)
+        print('Threshold: ', threshold - 1)
         print('-' * 20)
         result, clf_data = classify(threshold)
         means.append(clf_data['means'])
@@ -191,6 +186,19 @@ def main():
                })
 
     stems_analysis()
+
+
+def main():
+    data_list = os.listdir(path)
+    prep = TextPreprocess(path)
+    datasets = prep.get_datasets()
+    for key, dataset in zip(datasets.keys(), datasets.values()):
+        
+        auto_stem = AutoStem(dataset['Scripture'])
+        auto_stem.stem_words()
+        selected = auto_stem.select_stem()
+        df = pd.DataFrame({key: selected})
+        #df.to_csv(stems_path + key)
 
 
 if __name__ == "__main__":

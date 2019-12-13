@@ -104,7 +104,7 @@ class TextPreprocess:
         :rtype: String.
         """
         try:
-            text = unicode(text, 'utf-8')
+            text = np.unicode(text, 'utf-8')
         except (TypeError, NameError):  # unicode is a default on python 3
             pass
         text = unicodedata.normalize('NFD', text)
