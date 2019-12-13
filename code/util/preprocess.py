@@ -1,6 +1,7 @@
 import operator
 import os
 import re
+import unicodedata
 import sys
 import threading
 import time
@@ -11,9 +12,11 @@ from nltk import RegexpTokenizer
 from numpy.random.mtrand import shuffle
 from util.util import coherence, word_count, text_prep
 import pprint
+from bs4 import BeautifulSoup
+import traceback
 
 
-class PrepData:
+class TextPreprocess:
     datasets = None
     datasets_list = []
     root_dir = ''
@@ -23,6 +26,7 @@ class PrepData:
         self.root_dir = dir_path
         self.datasets_list = os.listdir(dir_path)
         self.datasets = {}.fromkeys(self.datasets_list)
+        pd.set_option('display.max_colwidth', -1)
 
     def set_root_dir(self, dir_path):
         self.root_dir = dir_path
@@ -50,7 +54,12 @@ class PrepData:
 
         return self.datasets
 
-    def clean_data(self, regex=None, auto_save=False):
+    def _get_links(self, text):
+        soup = BeautifulSoup(text, 'html.parser')
+
+        return soup.find_all('a')
+
+    def clean_data(self, regex=None, auto_save=True):
 
         if regex is None:
             regex = []
@@ -65,9 +74,13 @@ class PrepData:
             except FileNotFoundError:
                 return "The path " + path + " was not found."
 
+            temp = 0
+
             for exp in regex:
-                print('#', end='')
-                dataset = dataset.replace(to_replace=exp, value='', regex=True)
+                sys.stdout.write('\r' + 'Loading: {:.2f}'.format(temp / len(regex) * 100) + '%')
+                sys.stdout.flush()
+                temp += 1
+                dataset.replace(to_replace=exp, value=' ', regex=True, inplace=True)
 
             self.datasets[name] = dataset
 
@@ -80,40 +93,70 @@ class PrepData:
         dataset = self.get_datasets()
         return dataset.get_value(dataset_name)
 
+    def strip_accents(self, text):
+        """
+        Strip accents from input String.
+
+        :param text: The input string.
+        :type text: String.
+
+        :returns: The processed String.
+        :rtype: String.
+        """
+        try:
+            text = unicode(text, 'utf-8')
+        except (TypeError, NameError):  # unicode is a default on python 3
+            pass
+        text = unicodedata.normalize('NFD', text)
+        text = text.encode('ascii', 'ignore')
+        text = text.decode("utf-8")
+
+        return str(text)
+
+    def generate_pairs(self, bible_1, bible_2):
+
+        temp = 0
+        total = len(bible_1)
+        pair_text = []
+        for ref in bible_1.iterrows():
+
+            sys.stdout.write('\r' + 'Loading: {:.2f}'.format((temp / total) * 100) + '%')
+            sys.stdout.flush()
+            temp += 1
+            ref = ref[1]
+
+            check = bible_2.loc[
+                (bible_2['Book'] == ref['Book']) &
+                (bible_2['Chapter'] == ref['Chapter']) &
+                (bible_2['Verse'] == ref['Verse'])
+                ]['Scripture'].empty
+
+            if check is not True:
+                verse_2 = bible_2.loc[
+                    (bible_2['Book'] == ref['Book']) &
+                    (bible_2['Chapter'] == ref['Chapter']) &
+                    (bible_2['Verse'] == ref['Verse'])
+                    ]['Scripture'].to_string(index=False)
+
+                pair_text.append(ref['Scripture'] + '\t' + verse_2 + '\n')
+        shuffle(pair_text)
+        return pair_text
+
     def get_text_pairs(self):
         self.get_datasets()
 
         k_pairs = list(permutations(self.datasets.keys(), 2))
 
         print('\nCreating pairs: ')
-        print('Progress: #', end='')
-
-        for p in k_pairs:
-
-            key = re.sub(r'\s[-]\sBíblia Completa.csv', '', str(p))
-            key = re.sub(r'\s[-]\sNovo Testamento.csv', '', str(p))
-            key = re.sub(r'\(', '', key)
-            key = re.sub(r'\)', '', key)
-            key = re.sub(r'[,]', ' -', key)
-            key = re.sub(r'[\']', '', key)
-
-            pair_text = []
-            print('#', end='')
-            self.datasets[p[0]]['Scripture'].align(self.datasets[p[1]]['Scripture'])
-
-            for r_1, r_2 in zip(self.datasets[p[0]]['Scripture'],
-                                self.datasets[p[1]]['Scripture']):
-
-                try:
-
-                    pair_text.append(' '.join(str(r_1).split()) + '\t' + ' '.join(str(r_2).split()) + '\n')
-
-                except AttributeError:
-                    print(AttributeError)
-
-                    breakpoint()
-
-            shuffle(pair_text)
+        print('Progress: ', end='')
+        progress = []
+        for p in self.datasets.keys():
+            progress.append('#')
+            key = self.strip_accents(p.split(' ')[0]).lower()
+            key += '-' + self.strip_accents('Português - Novo Testamento.csv'.split(' ')[0]).lower()
+            print('\n\n' + p)
+            print('Português - Novo Testamento.csv')
+            pair_text = self.generate_pairs(self.datasets[p], self.datasets['Português - Novo Testamento.csv'])
 
             self.data_pairs[key] = pair_text
 
@@ -151,13 +194,13 @@ class PrepData:
                 print(letter)
                 break
 
-    def save_pairs(self, file_type):
+    def save_pairs(self, file_type='.txt', dir_to_save=r'Resources/pairs/'):
 
         print('\nSaving pairs: ')
         print('Progress: #', end='')
         for key, text in zip(self.data_pairs.keys(), self.data_pairs.values()):
 
-            path = self.root_dir + key + file_type
+            path = dir_to_save + key + file_type
             print('#', end='')
 
             file = open(path, 'w', encoding='utf-8')
@@ -172,6 +215,7 @@ class PrepData:
         for key, bible in zip(self.datasets.keys(), self.datasets.values()):
 
             script_seq = []
+
             for v_seq in verses_seq:
                 check = bible.loc[
                     (bible['Book'] == ref['Book']) &
@@ -201,6 +245,7 @@ class PrepData:
                     script_seq[0] = re.sub(res, to_str, script_seq[0])
 
                 try:
+
                     bible.replace(to_replace=script_seq[0], value=new_verse, regex=True, inplace=True)
                 except re.error:
                     file = open('report/logs.txt', 'a', encoding='utf-8')
@@ -220,6 +265,7 @@ class PrepData:
                         file = open('report/logs.txt', 'a', encoding='utf-8')
                         file.write(str(IndexError))
                         file.write(ref)
+                        file.write(traceback.format_exc)
                         print(ref)
                         pass
 
@@ -228,72 +274,64 @@ class PrepData:
     def align_verses(self):
         global reference
 
-        pd.set_option('display.max_colwidth', -1)
-
         for k, b in zip(self.datasets.keys(), self.datasets.values()):
-
-            print('\nCollapsing verses : ', k, '...')
-            print('\nProgress: #', end='')
-
-            SIZE = len(b['Scripture'])
-            STEP = 1 / 100
-            percent = 0
             temp = 0
+            print('\n\nCollapsing verses : ', k, '...')
 
-            for verse, ind in zip(b['Scripture'], b['Scripture'].index.values.astype(int)):
+            total = len(b['Scripture'].index.values.astype(int))
+            step = 1 / 100
+            total_done = 0
 
+            for index, reference in b.iterrows():
+
+                sys.stdout.write('\r' + 'Loading: {:.2f}'.format((temp / total) * 100) + '%')
+                sys.stdout.flush()
+                temp += 1
                 try:
-                    search = re.search(r'(?<=<sup>)[(][0-9]*[-][0-9]*[)]', verse)
-                    first = re.search(r'(?<=([(]))[0-9][0-9]*', search.group(0)).group(0)
-                    last = re.search(r'(?<=([-]))[0-9][0-9]*', search.group(0)).group(0)
-                    verses = np.arange(int(first), int(last) + 1)
+                    search = BeautifulSoup(' '.join(reference['Scripture'].split(' ')), 'html.parser')
 
-                    reference = b.loc[ind, :]
+                    for tag in search.find_all('sup'):
 
-                    if temp is int(SIZE * STEP):
-                        percent += 1
-                        percent += temp
-                        temp = 0
-                        print('#', end='')
+                        search_1 = re.search(r'(?<=([(]))[0-9][0-9]*', tag.get_text())
+                        if search_1 is not None:
+                            first = search_1.group(0)
 
-                    self.collapse_verses(reference, verses)
-                except AttributeError:
+                        search_2 = re.search(r'(?<=([-]))[0-9][0-9]*', tag.get_text())
 
-                    try:
+                        if search_2 is not None:
+                            last = search_2.group(0)
 
-                        first = re.search(r'(?<=([(]\s))[0-9][0-9]*', verse).group(0)
-                        last = re.search(r'(?<=-\s)[0-9][0-9]*', verse).group(0)
+                        if temp >= int(total * step):
+                            total_done += temp
+                            print('#', end='')
 
-                        verses = np.arange(int(first), int(last) + 1)
-                        print('#', end='')
-
-                        reference = b.loc[ind, :]
-
-                        self.collapse_verses(reference, verses)
-                    except AttributeError:
-                        pass
-
-                    except IndexError:
-                        print(IndexError)
-                        file = open('logs.txt', 'a', encoding='utf-8')
-                        file.write(k + '\n')
-                        file.write(str(b[b['Scripture'] == verse]))
-                        file.write('Pattern: ' + r'(?<=(<sup>[(]))[0-9][0-9]*')
-                        file.close()
-                        pass
+                        if search_1 is not None and search_2 is not None:
+                            verses = np.arange(int(first), int(last) + 1)
+                            self.collapse_verses(reference, verses)
 
                 except TypeError:
-                    print(TypeError)
                     file = open('logs.txt ', 'a', encoding='utf-8')
                     file.write(k + '\n')
-                    file.write(str(b[b['Scripture'] == verse]))
-                    file.write('Pattern: ' + r'(?<=(<sup>[(]))[0-9][0-9]*')
+                    file.write(str(tag))
+                    file.write('\n' + str(reference))
+                    file.write(traceback.format_exc())
                     file.close()
-            temp += 1
-            print('\nFinished Successfully!')
+                except KeyError:
+                    file = open('logs.txt ', 'a', encoding='utf-8')
+                    file.write(k + '\n')
+                    file.write(str(tag))
+                    file.write('\n' + str(reference))
+                    file.write(traceback.format_exc())
+                    file.close()
+                except AttributeError:
+                    file = open('logs.txt ', 'a', encoding='utf-8')
+                    file.write(k + '\n')
+                    file.write(str(tag))
+                    file.write('\n' + str(reference))
+                    file.write(traceback.format_exc())
+                    file.close()
 
-        for key, data in (self.datasets.keys(), self.datasets.values()):
-            data.to_csv(self.root_dir + key, index=False)
+        print('\nTotal done: {} Finished Successfully!'.format(total_done))
 
 
 def stem_words(text, label):

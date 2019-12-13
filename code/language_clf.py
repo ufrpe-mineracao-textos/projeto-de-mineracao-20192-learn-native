@@ -1,6 +1,6 @@
 import os
 import pandas as pd
-from util.preprocess import PrepData, AutoStem
+from util.preprocess import TextPreprocess, AutoStem
 from util.util import count_words, stem_text
 
 

@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-from util.preprocess import PrepData, AutoStem, stem_words
+from util.preprocess import TextPreprocess, AutoStem, stem_words
 from language_clf import LangClf
 from util.util import count_words, stem_text, draw_plot, text_prep
 import pprint
@@ -18,8 +18,9 @@ from nltk import RegexpTokenizer
 path = r'../Resources/bibles/'
 stems_path = r'../Resources/stems/'
 data_list = os.listdir(path)
-prep = PrepData(path)
+prep = TextPreprocess(path)
 dataset = prep.get_datasets()
+
 PATH = r'../out/table'
 
 
@@ -57,7 +58,7 @@ def load_data(threshold=44):
     stems_dic = {}
 
     for name in stems_list:
-        data = pd.read_csv(path + name, encoding='utf-8')
+        data = pd.read_csv(path + name.replace(' ', ''), encoding='utf-8')
         train_data = data[data['Book'] < threshold]['Scripture']
         test_data = data[data['Book'] >= threshold]['Scripture']
 
@@ -85,7 +86,7 @@ def classify(threshold=44):
     :return: two vectors with the text label, predicted, similarity of all predictions
     """
 
-    prep = PrepData(path)
+    prep = TextPreprocess(path)
     lang_dic = prep.get_datasets()
     stems_dic, trains, stems_list, testes = load_data(threshold)
 
