@@ -109,7 +109,7 @@ def count_words(text, threshold=100):
 
     word_freq.pop('')
 
-    return sorted(word_freq.items(), key=lambda kv: kv[1], reverse=True)[:threshold]
+    return sorted(word_freq.items(), key=lambda kv: kv[1]/len(text), reverse=True)[:threshold]
 
 
 def stem_text(text, stems):

@@ -342,13 +342,28 @@ def stem_words(text, label):
     return data
 
 
+from collections import Counter
+
+
+def get_relative_count(count_dic):
+    new_dict = {}
+    total_count = sum(count_dic.values())
+    for key, count in zip(count_dic.keys(), count_dic.values()):
+        new_dict[key] = count / total_count
+    try:
+        new_dict.pop('')
+    except:
+        pass
+    return new_dict
+
+
 class AutoStem:
     path_dir = ''
     raw_text = ''
     candidates = None
     data = {
-        'letter': None,
-        'suffix': None,
+        'letter': {},
+        'suffix': {},
     }
     top_suffixes = None
     suffixes_stem = None
@@ -381,52 +396,22 @@ class AutoStem:
 
     def freq_counter(self):
 
-        letter_freq = {}
-        suffix_freq = {}
-
         tokens = self.raw_text.split()
-
+        letters = []
+        suffixes = []
         for token in tokens:
+            letters.extend(token.strip())
 
-            for l in token[:-1]:
+            for size in range(1, 8):
 
-                try:
-                    freq = letter_freq.get(l.lower())
-                    freq += 1
-                    letter_freq[l.lower()] = freq
+                if len(token) > size:
+                    suffix = token[-size:-1]
+                    suffixes.append(suffix)
 
-                except TypeError:
-
-                    freq = 1
-                    letter_freq[l.lower()] = freq
-
-                for size in range(1, 8):
-
-                    if len(token) > size:
-                        suffix = token[-size:-1]
-
-                        try:
-                            freq = suffix_freq.get(suffix)
-                            freq += 1
-                            suffix_freq[suffix] = freq
-                        except TypeError:
-                            freq = 1
-                            suffix_freq[suffix] = freq
-
-        total_count = sum(letter_freq.values())
-
-        for key, count in zip(letter_freq.keys(), letter_freq.values()):
-            letter_freq[key] = count / total_count
-
-        total_count = sum(suffix_freq.values())
-
-        for key, count in zip(suffix_freq.keys(), suffix_freq.values()):
-            suffix_freq[key] = count / total_count
-        suffix_freq.pop('')
-        self.data['letter'] = letter_freq
-        self.data['suffix'] = suffix_freq
-
-        return suffix_freq
+        suffixes.remove(sys.intern(''))
+        self.data['letter'] = pd.Series(letters).value_counts(normalize=True).to_dict()
+        self.data['suffix'] = pd.Series(suffixes).value_counts(normalize=True).to_dict()
+        self.data['suffix'].pop('')
 
     def select_stem(self, threshold=100):
         """
@@ -453,13 +438,13 @@ class AutoStem:
         """
         Faz o stem das palavras do texto baseado na coherence 
         """
-
+        self.freq_counter()
         suffix_freq = self.data['suffix']
 
         suffixes = list(suffix_freq.keys())
 
         temp = 0
-        print("Stemming: ")
+
         total = len(suffixes)
         print('Loading: ', end='')
 
@@ -473,6 +458,7 @@ class AutoStem:
 
             freq = suffix_freq[suffix]
             coh = coherence((suffix, freq), self.data['letter'])
+
             self.suffix_coh.add((suffix, coh))
 
             for word in set(search):
