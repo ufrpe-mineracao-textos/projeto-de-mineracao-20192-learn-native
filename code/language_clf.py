@@ -8,6 +8,7 @@ from util.util import stem_document
 from multiprocessing.pool import ThreadPool, Pool
 import numpy as np
 import sys
+import matplotlib.pyplot as plt
 
 
 class LangClf:
@@ -168,5 +169,22 @@ class LangClf:
     def get_accuracy(self):
         return self.hits / len(self.test_documents.keys())
 
-    def get_scatter(self):
-        pass
+    def get_test_plot(self, title='Test Plot'):
+
+        x = [tup[1] for tup in self.test_results.values()]
+        plt.barh(x, self.test_results.keys())
+        plt.title(title)
+        plt.xticks(rotation=45)
+        plt.figure(dpi=300)
+        plt.show()
+
+    def save_results(self):
+        file = open('test_results.txt', 'a')
+        file.write("Threshold: " + str(self.words_threshold) + '\n')
+        file.write('-' * 40)
+        file.write("\nMean similarity: " + str(self.get_mean_similarity()))
+        file.write("\nStandard Deviation similarity: " + str(self.get_std_similarity()))
+        file.write("\nAccuracy: " + str(self.get_accuracy()))
+        file.write("\nMean train size: " + str(self.get_train_mean_size()))
+        file.write('-' * 40 + '\n')
+        file.close()

@@ -5,7 +5,6 @@ from sys import intern
 
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 import sys
 from util.preprocess import TextPreprocess, AutoStem, stem_words
 from language_clf import LangClf
@@ -62,18 +61,13 @@ def classify(threshold=4):
     # clf.load_clf(pd.read_csv('top_ranked_words.csv', encoding='utf8'))
     results = clf.test()
     print(results)
-    file = open('results.txt', 'a')
-    file.write("Mean similarity: " + str(clf.get_mean_similarity()))
-    file.write("Standard Deviation similarity: " + str(clf.get_std_similarity()))
-    file.write("Accuracy: " + str(clf.get_accuracy()))
-    file.write("Mean train size: " + str(clf.get_train_mean_size()))
-    file.close()
-    
+
     print("Mean similarity: ", clf.get_mean_similarity())
     print("Standard Deviation similarity: ", clf.get_std_similarity())
     print("Accuracy: ", clf.get_accuracy())
     print("Mean train size: ", clf.get_train_mean_size())
 
+    clf.get_test_plot()
     return sorted(results.values(), key=lambda tup: tup[1])
 
 
