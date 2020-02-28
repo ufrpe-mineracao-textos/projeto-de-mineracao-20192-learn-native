@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 from nltk import RegexpTokenizer
 from numpy.random.mtrand import shuffle
-from util.util import coherence, word_count, text_prep
+from util.util import coherence, word_count, prep_text_to_stem
 import pprint
 from bs4 import BeautifulSoup
 import traceback
@@ -381,7 +381,7 @@ class AutoStem:
         self.data['letter'] = {}
         self.data['suffix'] = {}
 
-        self.raw_text = text_prep(text)
+        self.raw_text = prep_text_to_stem(text)
 
     def get_suffix_freq(self):
         suffix_dic = self.data['suffix']

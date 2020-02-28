@@ -3,30 +3,20 @@ from collections import Counter
 from sys import intern
 import threading
 import pandas as pd
-from util.preprocess import TextPreprocess, AutoStem
-from util.util import count_words, stem_text
+from util.util import get_tokens
+from util.util import stem_document
 from multiprocessing.pool import ThreadPool, Pool
 import numpy as np
 import sys
 
 
-def check_if_inside(set_1, set_2):
-    # Calculate the similarity
-    similarity = 0
-    for w_t in set_2:
-        if w_t in set_1:
-            similarity += 1
-
-    return similarity / len(set_1)
-
-
 class LangClf:
     stem_dic = None
-    test_texts = None
-    test_count = None
-    train_text = None
+    test_documents = None
+    number_train_words = None
+    train_documents = None
     lang_count_dic = {}
-    top_ranked_words = {}
+    train_recurrent_words = {}
     test_results = {}
     hits = 0
 
@@ -41,46 +31,62 @@ class LangClf:
             stem_dic = {}
 
         self.hits = 0
-        self.train_text = {}
+        self.train_documents = {}
+        self.test_documents = {}
         self.stem_dic = stem_dic
-        self.top_ranked_words = {}
+        self.train_recurrent_words = {}
         self.test_results = {}
-        self.train_labels = []
-        self.test_labels = []
-        self.test_texts = {}
         self.words_threshold = words_threshold
+        self.number_train_words = []
 
-    def fit(self, train_texts, test_texts):
+    def extract_features(self, params):
+        train_document = params[1]
+        label = params[0]
+        tokens = get_tokens(train_document)
+
+        train_document = stem_document(' '.join(tokens), self.stem_dic[label])
+
+        tokens = train_document.split(' ')
+        words_count = Counter(tokens)
+        self.number_train_words.append((label, sum(words_count.values())))
+        return label, words_count.most_common(self.words_threshold)
+
+    def fit(self, train_documents, test_documents):
         """
         Receives the training set and count the words
-        :param train_texts: The texts dictionary that will feed our classifier
+        :param test_documents:
+        :param train_documents: The texts dictionary that will feed our classifier
         key:Language value: text
-        :return:
+        :return: nothing
         """
-        self.test_texts = test_texts
-        self.train_texts = train_texts
-        for train_text, label in zip(self.train_texts.values(), self.train_texts.keys()):
-            text = list(filter(lambda x: type(x) == str, train_text))
-            stemmed_txt = stem_text(text, self.stem_dic[label])
-            train_count = count_words(stemmed_txt, self.words_threshold)
-            self.train_text[label] = stemmed_txt
-            self.top_ranked_words[label] = [word[0] for word in train_count]
+        self.test_documents = test_documents
+        self.train_documents = train_documents
+        p = Pool(5)
+
+        self.train_recurrent_words = dict(p.map(self.extract_features, list(self.train_documents.items())))
 
     def get_lang_count(self):
         return self.lang_count_dic
 
     def load_clf(self, train_data):
-        self.top_ranked_words = train_data
+        self.train_recurrent_words = train_data
 
     def check_similarity(self, params):
 
         train_lang = params[0]
-        document = params[1]
-        stemmed_text = stem_text(document, self.stem_dic[train_lang])
-        words_count = count_words(stemmed_text, len(self.top_ranked_words[train_lang]))
-        test_words = [w[0] for w in words_count]
+        test_words = params[1]
+
         # Obtain the words count in the training set
-        match = check_if_inside(self.top_ranked_words[train_lang], test_words)
+        train_words = [tup[0] for tup in self.train_recurrent_words[train_lang]]
+
+        # Calculate the similarity
+
+        similarity = 0
+        for w_t in train_words:
+            if w_t in test_words:
+                similarity += 1
+
+        match = similarity / len(train_words)
 
         return train_lang, match
 
@@ -91,15 +97,17 @@ class LangClf:
         :param document:
         :return: return the predicted language with its similarity.
         """
-        training_list = []
+
+        similarity_list = []
         params_list = []
         # Test procedure
 
-        for train_lang in self.train_text.keys():
-            params_list.append((train_lang, document))
+        for train_lang in self.train_recurrent_words.keys():
+            test_recurrent_words = self.extract_features((train_lang, document))
+            test_words = [tup[0] for tup in test_recurrent_words[1]]
 
-        p = Pool(5)
-        similarity_list = p.map(self.check_similarity, params_list)
+            similarity = self.check_similarity((train_lang, test_words))
+            similarity_list.append(similarity)
 
         most_similar = sorted(similarity_list, key=lambda tup: tup[1], reverse=True)[0]
 
@@ -110,7 +118,7 @@ class LangClf:
         test_list = []
 
         results_array = []
-        for original, txt in zip(self.test_texts.keys(), self.test_texts.values()):
+        for original, txt in zip(self.test_documents.keys(), self.test_documents.values()):
             print("Predicting :", original)
             predicted = self.predict(txt)
             print("Predicted: ", predicted)
@@ -128,7 +136,7 @@ class LangClf:
         :return:The mean size of the test set in terms of number of words
         """
         sizes = []
-        for text in self.test_texts.values():
+        for text in self.test_documents.values():
             sizes.append(len(text.split()))
 
         return np.mean(sizes)
@@ -137,11 +145,7 @@ class LangClf:
         """
         :return: The mean size of the training set in terms of number of words
         """
-        sizes = []
-        for text in self.train_text.values():
-            sizes.append(len(text.split()))
-
-        return np.mean(sizes)
+        return np.mean([tup[1] for tup in self.number_train_words])
 
     def get_mean_similarity(self):
         """
@@ -158,11 +162,11 @@ class LangClf:
         return np.std(similarities)
 
     def save_clf(self):
-        df = pd.DataFrame(self.top_ranked_words)
+        df = pd.DataFrame(self.train_recurrent_words)
         df.to_csv('top_ranked_words.csv', index=False)
 
     def get_accuracy(self):
-        return self.hits / len(self.test_texts.keys())
+        return self.hits / len(self.test_documents.keys())
 
     def get_scatter(self):
         pass

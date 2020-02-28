@@ -22,7 +22,32 @@ def draw_plot(params):
     plt.show()
 
 
-def text_prep(text):
+def get_tokens(document, stop_list=None):
+    if stop_list is None:
+        stop_list = ['.', '-', '!', '?', '', ',', 'Series([],']
+
+    if document is None:
+        raise ValueError("Document is None")
+    tokenizer = RegexpTokenizer(r'\w+', flags=re.UNICODE)
+    tokens = tokenizer.tokenize(' '.join(document).lower())
+
+    tokens = list(filter(lambda x: type(x) == str, tokens))
+
+    tokens = [token for token in tokens if token not in stop_list]
+
+    return tokens
+
+
+def stem_document(document, stems):
+    document = pd.Series(document)
+
+    for stem in stems:
+        document.replace(to_replace=stem + r'\w+', value=stem, regex=True)
+
+    return document.get(0)
+
+
+def prep_text_to_stem(text):
     """
     Remove partes indesejadas como números e palavras na stop_list. Além disso adicionar # ao final da
     palavra a fim de facilitar no stems de uma única letra
@@ -34,9 +59,8 @@ def text_prep(text):
     tokens = tokenizer.tokenize(' '.join(text).lower())
 
     new_tokens = []
-    w_freq = word_count(' '.join(tokens), set(tokens))
 
-    stop_list = [tup[0] for tup in w_freq[:300]]
+    stop_list = Counter(tokens).most_common(300)
     for token in tokens:
         if token not in stop_list:
             token = ''.join([letter for letter in token if not letter.isdigit()])
@@ -44,6 +68,14 @@ def text_prep(text):
             new_tokens.append(new_token)
 
     return ' '.join(new_tokens)
+
+
+def format_result(result):
+    x, y = [], []
+    for res in result:
+        y.append(res[0])
+        x.append('{0:.2f}%'.format(res[1]))
+    return x, y
 
 
 def letter_count(token, count_dic):
@@ -94,31 +126,6 @@ def word_count(text, words):
         word_freq[word] = counting
 
     return sorted(word_freq.items(), key=lambda tup: tup[1], reverse=True)
-
-
-def count_words(text, threshold=100, out_list=None):
-    """
-    Retorna as palavras mais frequentes limitadas pelo threshold que
-    é 100 por default.
-    """
-    if out_list is None:
-        out_list = ['.', '-', '!', '?', '', ',', 'Series([],']
-
-    out_list = [sys.intern(symbol) for symbol in out_list]
-
-    tokens = [token for token in text.split(' ') if token not in out_list]
-
-    return Counter(tokens).most_common(threshold)
-
-
-def stem_text(text, stems):
-    text = ' '.join(list(filter(lambda x: type(x) == str, text))).lower()
-
-    for stem in stems:
-        words = re.findall(stem + r'\w+', text)
-        for word in words:
-            text = text.replace(word, stem)
-    return text
 
 
 def animated_loading():
