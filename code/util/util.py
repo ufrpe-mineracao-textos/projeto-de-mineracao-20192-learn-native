@@ -2,6 +2,8 @@ import math
 import re
 import sys
 import time
+from collections import Counter
+
 import pandas as pd
 from nltk import RegexpTokenizer
 import matplotlib.pyplot as plt
@@ -94,22 +96,19 @@ def word_count(text, words):
     return sorted(word_freq.items(), key=lambda tup: tup[1], reverse=True)
 
 
-def count_words(text, threshold=100):
+def count_words(text, threshold=100, out_list=None):
     """
     Retorna as palavras mais frequentes limitadas pelo threshold que
     é 100 por default.
     """
-    word_freq = {}.fromkeys(set(text.split(' ')))
-    text = text.split(' ')
-    for word in text:
-        try:
-            word_freq[word] += 1
-        except TypeError:
-            word_freq[word] = 1
+    if out_list is None:
+        out_list = ['.', '-', '!', '?', '', ',', 'Series([],']
 
-    word_freq.pop('')
+    out_list = [sys.intern(symbol) for symbol in out_list]
 
-    return sorted(word_freq.items(), key=lambda kv: kv[1]/len(text), reverse=True)[:threshold]
+    tokens = [token for token in text.split(' ') if token not in out_list]
+
+    return Counter(tokens).most_common(threshold)
 
 
 def stem_text(text, stems):

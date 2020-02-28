@@ -1,82 +1,168 @@
 import os
+from collections import Counter
+from sys import intern
+import threading
 import pandas as pd
 from util.preprocess import TextPreprocess, AutoStem
 from util.util import count_words, stem_text
+from multiprocessing.pool import ThreadPool, Pool
+import numpy as np
+import sys
+
+
+def check_if_inside(set_1, set_2):
+    # Calculate the similarity
+    similarity = 0
+    for w_t in set_2:
+        if w_t in set_1:
+            similarity += 1
+
+    return similarity / len(set_1)
 
 
 class LangClf:
     stem_dic = None
-    lang_dic = None
+    test_texts = None
     test_count = None
-    train_count = None
+    train_text = None
     lang_count_dic = {}
-    text_label = ''
-    words_threshold = 100
+    top_ranked_words = {}
+    test_results = {}
+    hits = 0
 
-    def __init__(self, stem_dic=None, lang_dic=None, threshold=100):
+    def __init__(self, stem_dic=None, words_threshold=100):
 
         """
-        :param stem_dic:
-        :param lang_dic:
-        :param threshold: The threshold for the most frequent words to be selected
+        :param stem_dic: The dictionary of stems
+        :param words_threshold: The threshold for the most frequent words to be selected in the training process
         """
 
-        if lang_dic is None:
-            lang_dic = {}
         if stem_dic is None:
             stem_dic = {}
-        self.stem_dic = stem_dic
-        self.lang_dic = lang_dic
-        self.lang_count_dic = {}
-        self.text_label = ''
-        self.words_threshold = threshold
 
-    def fit(self, train_texts):
+        self.hits = 0
+        self.train_text = {}
+        self.stem_dic = stem_dic
+        self.top_ranked_words = {}
+        self.test_results = {}
+        self.train_labels = []
+        self.test_labels = []
+        self.test_texts = {}
+        self.words_threshold = words_threshold
+
+    def fit(self, train_texts, test_texts):
         """
         Receives the training set and count the words
-        :param train_texts: The text that will feed our classifier
-
+        :param train_texts: The texts dictionary that will feed our classifier
+        key:Language value: text
         :return:
         """
-        for train_text, label in zip(train_texts, self.lang_dic.keys()):
-            train_text = list(filter(lambda x: type(x) == str, train_text))
-            stemmed_txt = stem_text(train_text, self.stem_dic[label])
+        self.test_texts = test_texts
+        self.train_texts = train_texts
+        for train_text, label in zip(self.train_texts.values(), self.train_texts.keys()):
+            text = list(filter(lambda x: type(x) == str, train_text))
+            stemmed_txt = stem_text(text, self.stem_dic[label])
             train_count = count_words(stemmed_txt, self.words_threshold)
-            self.lang_count_dic[label] = train_count
+            self.train_text[label] = stemmed_txt
+            self.top_ranked_words[label] = [word[0] for word in train_count]
 
-    def predict(self, text):
+    def get_lang_count(self):
+        return self.lang_count_dic
+
+    def load_clf(self, train_data):
+        self.top_ranked_words = train_data
+
+    def check_similarity(self, params):
+
+        train_lang = params[0]
+        document = params[1]
+        stemmed_text = stem_text(document, self.stem_dic[train_lang])
+        words_count = count_words(stemmed_text, len(self.top_ranked_words[train_lang]))
+        test_words = [w[0] for w in words_count]
+        # Obtain the words count in the training set
+        match = check_if_inside(self.top_ranked_words[train_lang], test_words)
+
+        return train_lang, match
+
+    def predict(self, document):
 
         """
           Predicts the language of a given language
-        :param text: The text that must be identified
+        :param document:
         :return: return the predicted language with its similarity.
         """
+        training_list = []
+        params_list = []
+        # Test procedure
 
-        # Stems the new Text
-        sim_list = []
-        auto_stem = AutoStem(text)
-        auto_stem.stem_words()
-        selected = auto_stem.select_stem()
+        for train_lang in self.train_text.keys():
+            params_list.append((train_lang, document))
 
-        # Preprocess the test text and get the words count
-        stemmed_text = stem_text(text, selected)
-        words_count = count_words(stemmed_text)
-        test_words = [w[0] for w in words_count]
+        p = Pool(5)
+        similarity_list = p.map(self.check_similarity, params_list)
 
-        for key in self.lang_count_dic.keys():
+        most_similar = sorted(similarity_list, key=lambda tup: tup[1], reverse=True)[0]
 
-            # Obtain the words count in the training set
-            words_tup = self.lang_count_dic[key]
-            train_words = [w[0] for w in words_tup]
+        return most_similar
 
-            # Calculate the similarity
-            similarity = 0
-            for w_t in test_words:
-                if w_t in train_words:
-                    similarity += 1
+    def test(self):
 
-            sim_list.append((key.replace('.csv', ''), similarity / self.words_threshold))
+        test_list = []
 
-        match = sorted(sim_list, key=lambda kv: kv[1], reverse=True)[0]
+        results_array = []
+        for original, txt in zip(self.test_texts.keys(), self.test_texts.values()):
+            print("Predicting :", original)
+            predicted = self.predict(txt)
+            print("Predicted: ", predicted)
+            if sys.intern(predicted[0]) is sys.intern(original):
+                self.hits += 1
+            self.test_results[original] = predicted
 
-        return match[0].replace('.csv', ''), match[1]
+        return self.test_results
+
+    def get_test_results(self):
+        return self.test_results
+
+    def get_test_mean_size(self):
+        """
+        :return:The mean size of the test set in terms of number of words
+        """
+        sizes = []
+        for text in self.test_texts.values():
+            sizes.append(len(text.split()))
+
+        return np.mean(sizes)
+
+    def get_train_mean_size(self):
+        """
+        :return: The mean size of the training set in terms of number of words
+        """
+        sizes = []
+        for text in self.train_text.values():
+            sizes.append(len(text.split()))
+
+        return np.mean(sizes)
+
+    def get_mean_similarity(self):
+        """
+        :return: The mean of similarity between of the test and training set of top words
+        """
+        similarities = [tup[1] for tup in self.test_results.values()]
+        return np.mean(similarities)
+
+    def get_std_similarity(self):
+        """
+        :return: The Standard Deviation of similarity between of the test and training set of top words
+        """
+        similarities = [tup[1] for tup in self.test_results.values()]
+        return np.std(similarities)
+
+    def save_clf(self):
+        df = pd.DataFrame(self.top_ranked_words)
+        df.to_csv('top_ranked_words.csv', index=False)
+
+    def get_accuracy(self):
+        return self.hits / len(self.test_texts.keys())
+
+    def get_scatter(self):
+        pass
