@@ -172,7 +172,8 @@ class LangClf:
     def get_test_plot(self, title='Test Plot'):
 
         x = [tup[1] for tup in self.test_results.values()]
-        plt.barh(x, self.test_results.keys())
+        x.sort(reverse=True)
+        plt.barh(list(self.test_results.keys()), x)
         plt.title(title)
         plt.xticks(rotation=45)
         plt.figure(dpi=300)
