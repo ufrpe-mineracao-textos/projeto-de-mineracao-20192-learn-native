@@ -59,6 +59,7 @@ def classify(threshold=4):
     clf.fit(trains, testes)  # Fits the Classifier with the training and test set
 
     # clf.load_clf(pd.read_csv('top_ranked_words.csv', encoding='utf8'))
+    print("Testing...")
     results = clf.test()
     print(results)
 

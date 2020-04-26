@@ -114,19 +114,25 @@ class LangClf:
 
         return most_similar
 
+    def _run_test(self, params):
+
+        original = params[0]
+        text = params[1]
+        predicted = self.predict(text)
+
+        self.test_results[original] = predicted
+
+        return original, predicted
+
     def test(self):
 
         test_list = []
 
-        results_array = []
+        p = Pool(3)
         for original, txt in zip(self.test_documents.keys(), self.test_documents.values()):
-            print("Predicting :", original)
-            predicted = self.predict(txt)
-            print("Predicted: ", predicted)
-            if sys.intern(predicted[0]) is sys.intern(original):
-                self.hits += 1
-            self.test_results[original] = predicted
+            test_list.append((original, txt))
 
+        self.test_results = dict(p.map(self._run_test, test_list))
         return self.test_results
 
     def get_test_results(self):
@@ -146,7 +152,10 @@ class LangClf:
         """
         :return: The mean size of the training set in terms of number of words
         """
-        return np.mean([tup[1] for tup in self.number_train_words])
+        sizes = []
+        for text in self.train_documents:
+            sizes.append(len(text))
+        return np.mean(sizes)
 
     def get_mean_similarity(self):
         """
@@ -167,6 +176,10 @@ class LangClf:
         df.to_csv('top_ranked_words.csv', index=False)
 
     def get_accuracy(self):
+        for predicted, original in zip(self.test_results.values(), self.test_results.keys()):
+            if sys.intern(predicted[0]) is sys.intern(original):
+                self.hits += 1
+
         return self.hits / len(self.test_documents.keys())
 
     def get_test_plot(self, title='Test Plot'):
