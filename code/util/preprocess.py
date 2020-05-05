@@ -459,10 +459,11 @@ class AutoStem:
             for word in set(search):
                 stem = word.lower().replace(suffix + '#', '')
                 self.suffixes_stem[suffix].add(stem)  # Guarda os stems associados ao sufixo
+
                 try:
                     self.candidates[stem].add(suffix)
                 except KeyError:
-                    self.candidates[stem] = set(suffix)  # Guarda o sufixo associado ao stem
+                    self.candidates.setdefault(stem, set(suffix))  # Guarda o sufixo associado ao stem
 
             temp += 1
 
