@@ -16,6 +16,13 @@ from bs4 import BeautifulSoup
 import traceback
 
 
+def to_log_file(string):
+    file = open('logs.txt ', 'a', encoding='utf-8')
+    file.write(string)
+
+    file.close()
+
+
 class TextPreprocess:
     datasets = None
     datasets_list = []
@@ -310,26 +317,14 @@ class TextPreprocess:
                             self.collapse_verses(reference, verses)
 
                 except TypeError:
-                    file = open('logs.txt ', 'a', encoding='utf-8')
-                    file.write(k + '\n')
-                    file.write(str(tag))
-                    file.write('\n' + str(reference))
-                    file.write(traceback.format_exc())
-                    file.close()
+                    string = k + '\n' + str(tag) + '\n' + str(reference) + traceback.format_exc()
+                    to_log_file(string)
                 except KeyError:
-                    file = open('logs.txt ', 'a', encoding='utf-8')
-                    file.write(k + '\n')
-                    file.write(str(tag))
-                    file.write('\n' + str(reference))
-                    file.write(traceback.format_exc())
-                    file.close()
+                    string = k + '\n' + str(tag) + '\n' + str(reference) + traceback.format_exc()
+                    to_log_file(string)
                 except AttributeError:
-                    file = open('logs.txt ', 'a', encoding='utf-8')
-                    file.write(k + '\n')
-                    file.write(str(tag))
-                    file.write('\n' + str(reference))
-                    file.write(traceback.format_exc())
-                    file.close()
+                    string = k + '\n' + str(tag) + '\n' + str(reference) + traceback.format_exc()
+                    to_log_file(string)
 
         print('\nTotal done: {} Finished Successfully!'.format(total_done))
 
