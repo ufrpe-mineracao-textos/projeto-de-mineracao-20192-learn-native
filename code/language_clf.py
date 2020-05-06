@@ -1,14 +1,15 @@
-import os
+import sys
 from collections import Counter
-from sys import intern
-import threading
+from multiprocessing.pool import Pool
+
+import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
+
 from util.util import get_tokens
 from util.util import stem_document
-from multiprocessing.pool import ThreadPool, Pool
-import numpy as np
-import sys
-import matplotlib.pyplot as plt
+
+Imag_path = './images/'
 
 
 class LangClf:
@@ -189,8 +190,8 @@ class LangClf:
         plt.barh(list(self.test_results.keys()), x)
         plt.title(title)
         plt.xticks(rotation=45)
-        plt.figure(dpi=300)
-        plt.show()
+        filename = title.lower() + str(self.get_mean_similarity()) + '.pdf'
+        plt.savefig(Imag_path+filename, dpi=600)
 
     def save_results(self):
         file = open('test_results.txt', 'a')
