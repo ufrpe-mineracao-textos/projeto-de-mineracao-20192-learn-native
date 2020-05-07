@@ -7,6 +7,7 @@ from collections import Counter
 import pandas as pd
 from nltk import RegexpTokenizer
 import matplotlib.pyplot as plt
+from spacy.symbols import punct
 
 
 def draw_plot(params):
@@ -55,15 +56,21 @@ def prep_text_to_stem(text):
     :return:
     """
     text = list(filter(lambda x: type(x) == str, text))
+
     tokenizer = RegexpTokenizer(r'\w+', flags=re.UNICODE)
     tokens = tokenizer.tokenize(' '.join(text).lower())
 
     new_tokens = []
 
     stop_list = Counter(tokens).most_common(300)
+    stop_list = [tup[0] for tup in stop_list]
+    stop_list.append('series([],')
+
     for token in tokens:
         if token not in stop_list:
             token = ''.join([letter for letter in token if not letter.isdigit()])
+            for pun in punct:
+                token.replace(pun, '')
             new_token = token + '#'
             new_tokens.append(new_token)
 

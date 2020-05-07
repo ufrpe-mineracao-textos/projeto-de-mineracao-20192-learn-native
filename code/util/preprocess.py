@@ -415,6 +415,7 @@ class AutoStem:
 
         threshold defines the number of suffix evaluated
         """
+
         selected = []
         top_suffixes = [tup[0] for tup in self.suffix_coh]
 
