@@ -368,7 +368,7 @@ class AutoStem:
 
         """
         Initialize the required variables
-        :param text:
+        :param text: the text from where the stems will be extracted
         """
         self.candidates = {}
         self.suffixes_stem = {}
@@ -410,7 +410,7 @@ class AutoStem:
 
     def select_stem(self, threshold=100):
         """
-        Seleciona os melhores stems 
+        Selects the best stems
         Key args:
 
         threshold defines the number of suffix evaluated
@@ -431,7 +431,7 @@ class AutoStem:
 
     def stem_words(self):
         """
-        Faz o stem das palavras do texto baseado na coherence 
+         Stem the words based on the coherence
         """
         self.freq_counter()
         suffix_freq = self.data['suffix']
@@ -458,12 +458,12 @@ class AutoStem:
 
             for word in set(search):
                 stem = word.lower().replace(suffix + '#', '')
-                self.suffixes_stem[suffix].add(stem)  # Guarda os stems associados ao sufixo
+                self.suffixes_stem[suffix].add(stem)  # Saves the stem associated to the suffix
 
                 try:
                     self.candidates[stem].add(suffix)
                 except KeyError:
-                    self.candidates.setdefault(stem, set(suffix))  # Guarda o sufixo associado ao stem
+                    self.candidates.setdefault(stem, set(suffix))  # Saves the suffix associated with stem
 
             temp += 1
 

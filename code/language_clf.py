@@ -42,6 +42,13 @@ class LangClf:
         self.number_train_words = []
 
     def extract_features(self, params):
+
+        """
+         Creates the profile features of training document obtaining the
+         100 most frequent words.
+        :param params: A tuple where the first item is the document label and second the training corpus
+        :return: a tuple of (label, list of 100 most frequent words)
+        """
         train_document = params[1]
         label = params[0]
         tokens = get_tokens(train_document)
@@ -74,7 +81,11 @@ class LangClf:
         self.train_recurrent_words = train_data
 
     def check_similarity(self, params):
-
+        """
+            Checks the similarity between the training dataset train_lang and the test_words data_set
+        :param params: (train_lang, list of test words)
+        :return:
+        """
         train_lang = params[0]
         test_words = params[1]
 
@@ -101,7 +112,7 @@ class LangClf:
         """
 
         similarity_list = []
-        params_list = []
+
         # Test procedure
 
         for train_lang in self.train_recurrent_words.keys():
