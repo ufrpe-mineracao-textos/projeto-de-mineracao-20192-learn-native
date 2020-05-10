@@ -1,9 +1,13 @@
+import itertools
 import os
+import re
+import sre_constants
 import time
-
+import matplotlib.colors as mcolors
 import pandas as pd
-import matplotlib.pyplot as plt
-from language_clf import LangClf, Imag_path
+import somoclu
+import random
+from language_clf import LangClf
 
 # --- Tirando referências -----
 
@@ -26,8 +30,8 @@ def load_data(threshold=4):
     stems_dic = pd.read_csv(stems_path, encoding='utf-8').dropna()
 
     for name in os.listdir(path):
-        label = name.replace('.csv', '')
-        data = pd.read_csv(path + name.replace(' ', ''), encoding='utf-8')
+        label = name.split()[0]
+        data = pd.read_csv(path + name, encoding='utf-8').dropna()
         trains[label] = data[data['Book'] < threshold]['Scripture']
         testes[label] = data[data['Book'] >= threshold]['Scripture']
 
@@ -57,6 +61,7 @@ def classify(threshold=4):
     std = clf.get_std_similarity()
     accuracy = clf.get_accuracy()
     train_mean_size = clf.get_train_mean_size()
+    clf.run_som()
 
     print("Threshold: ", threshold)
     print("Mean similarity: {:.5f}".format(mean))
@@ -78,19 +83,17 @@ def classify(threshold=4):
     }
 
 
-# plt.title("Mean Match rate Evolution")
-# plt.xlabel("Number of books")
-# plt.ylabel("Mean Match rate")
-# plt.savefig(Imag_path + 'mean.pdf', dpi=600)
-def main():
+def run_experiment():
     results_tup = []
     for i in range(1, 5):
         result = classify(i)
         results_tup.append((i, result["mean"], result["std"],
                             result["accuracy"], result["train_mean_size"],
                             result['time_taken']))
-    y_s = [tup[1] for tup in results_tup]
-    x_s = [str(tup[0]) for tup in results_tup]
+
+
+def main():
+    run_experiment()
 
 
 if __name__ == "__main__":
