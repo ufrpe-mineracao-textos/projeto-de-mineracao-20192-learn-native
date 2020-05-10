@@ -85,7 +85,7 @@ def classify(threshold=4):
 
 def run_experiment():
     results_tup = []
-    for i in range(1, 5):
+    for i in range(1, 2):
         result = classify(i)
         results_tup.append((i, result["mean"], result["std"],
                             result["accuracy"], result["train_mean_size"],
