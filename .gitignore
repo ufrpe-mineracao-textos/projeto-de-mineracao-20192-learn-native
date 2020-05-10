@@ -8,7 +8,9 @@ __pycache__/
 .vscode/
 # C extensions
 *.so
-
+.txt
+.pdf
+.bst
 # Distribution / packaging
 .Python
 build/
