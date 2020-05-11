@@ -279,12 +279,12 @@ class LangClf:
         """
         X_normalized = self._prepare_data_to_som()
         labels = list(self.train_recurrent_words.keys())
-        n_columns = 400
+        n_columns = 500
         n_rows = 400
 
         colors = random.choices(list(mcolors.CSS4_COLORS.keys()), k=len(labels))
 
-        som = somoclu.Somoclu(n_columns, n_rows, maptype="toroid", data=X_normalized)
+        som = somoclu.Somoclu(n_columns, n_rows, data=X_normalized)
         som.train(epochs=100)
 
         map_filename = "map-" + get_random_string() + '.pdf'
