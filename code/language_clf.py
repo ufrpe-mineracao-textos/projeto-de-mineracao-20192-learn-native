@@ -169,7 +169,7 @@ class LangClf:
         """
         sizes = []
         for text in self.test_documents.values():
-            sizes.append(len(text.split()))
+            sizes.append(len(list(text)))
 
         return np.mean(sizes)
 
@@ -262,7 +262,7 @@ class LangClf:
         df = pd.DataFrame.from_dict(lang_word_freq_dict).fillna(0)
         values = df.to_numpy()
 
-        X_normalized = np.array(normalize(values, norm='l2'))
+        X_normalized = np.array(normalize(values, norm='l1'))
         if save:
             X_normalized = X_normalized.T
             df = pd.DataFrame(X_normalized, index=labels, columns=top_tokens, dtype='float32')
@@ -279,7 +279,7 @@ class LangClf:
         """
         X_normalized = self._prepare_data_to_som()
         labels = list(self.train_recurrent_words.keys())
-        n_columns = 500
+        n_columns = 400
         n_rows = 400
 
         colors = random.choices(list(mcolors.CSS4_COLORS.keys()), k=len(labels))

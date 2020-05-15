@@ -61,7 +61,7 @@ def classify(threshold=4):
     std = clf.get_std_similarity()
     accuracy = clf.get_accuracy()
     train_mean_size = clf.get_train_mean_size()
-     # clf.run_som()
+    clf.run_som()
 
     print("Threshold: ", threshold)
     print("Mean similarity: {:.5f}".format(mean))
@@ -69,6 +69,8 @@ def classify(threshold=4):
     print("Accuracy: ", accuracy)
     print("Mean train size: {:.5f} words".format(train_mean_size))
     print("Final time: {:.5f}secs".format(time_taken))
+    print("Train mean size: ", clf.get_train_mean_size())
+    print("Test mean size: ", clf.get_test_mean_size())
     print(results)
     print()
     print('-' * 40)
