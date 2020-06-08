@@ -1,19 +1,17 @@
-import operator
 import os
 import re
-import unicodedata
 import sys
-import threading
-import time
+import traceback
 from itertools import permutations
+
 import numpy as np
 import pandas as pd
+import unicodedata
+from bs4 import BeautifulSoup
 from nltk import RegexpTokenizer
 from numpy.random.mtrand import shuffle
-from util.util import coherence, word_count, prep_text_to_stem
-import pprint
-from bs4 import BeautifulSoup
-import traceback
+
+from util.util import coherence, prep_text_to_stem
 
 
 def to_log_file(string):
@@ -335,9 +333,6 @@ def stem_words(text, label):
     stem.stem_words()
     data = {label: list(filter(lambda x: type(x) == str, stem.select_stem()))}
     return data
-
-
-from collections import Counter
 
 
 def get_relative_count(count_dic):
