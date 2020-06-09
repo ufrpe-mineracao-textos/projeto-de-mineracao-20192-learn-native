@@ -1,12 +1,8 @@
-import itertools
 import os
-import re
-import sre_constants
 import time
-import matplotlib.colors as mcolors
+
 import pandas as pd
-import somoclu
-import random
+
 from language_clf import LangClf
 
 # --- Tirando referências -----

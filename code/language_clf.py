@@ -1,16 +1,17 @@
 import random
-import re
 import sys
 from collections import Counter
 from multiprocessing.pool import Pool
+
 import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from util.util import get_tokens
-from util.util import stem_document
 import somoclu
 from sklearn.preprocessing import normalize
+
+from util.util import get_tokens
+from util.util import stem_document
 
 Imag_path = './images/'
 
