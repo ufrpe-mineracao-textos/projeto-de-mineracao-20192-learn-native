@@ -8,7 +8,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import somoclu
-from sklearn.preprocessing import normalize
+from sklearn.metrics import label_ranking_average_precision_score, accuracy_score
+from sklearn.preprocessing import normalize, MultiLabelBinarizer
+from scipy.special import softmax
 
 from util.util import get_tokens
 from util.util import stem_document
@@ -64,6 +66,7 @@ class LangClf:
         self.words_threshold = words_threshold
         self.number_train_words = []
         self.labels = []
+        self.softmax_list = []
 
     def extract_features(self, params):
 
@@ -74,26 +77,24 @@ class LangClf:
         :return: a tuple of (label, list of 100 most frequent words)
         """
         train_document = params[1]
-        label = params[0]
-        tokens = preprocess_document(train_document, list(self.stem_dic[label]))
+        doc_id = params[0]
+        tokens = preprocess_document(train_document, list(self.stem_dic[self.labels[doc_id]]))
         words_count = Counter(tokens)
-        self.number_train_words.append((label, sum(words_count.values())))
-        return label, words_count.most_common(self.words_threshold)
+        self.number_train_words.append((doc_id, sum(words_count.values())))
+        return self.labels[doc_id], list(dict(words_count.most_common(self.words_threshold)).keys())
 
-    def fit(self, train_documents, test_documents):
+    def fit(self, X, y):
         """
         Receives the training set and count the words
-        :param test_documents:
-        :param train_documents: The texts dictionary that will feed our classifier
+        :param X: The texts list
         key:Language value: text
         :return: nothing
         """
-        self.test_documents = test_documents
-        self.train_documents = train_documents
-        p = Pool(5)
-        self.labels = list(train_documents.keys())
 
-        self.train_recurrent_words = dict(p.map(self.extract_features, list(self.train_documents.items())))
+        self.train_documents = X
+        self.labels = y
+        p = Pool(5)
+        self.train_recurrent_words = dict(p.map(self.extract_features, list(enumerate(X))))
 
     def get_lang_count(self):
         return self.lang_count_dic
@@ -101,28 +102,30 @@ class LangClf:
     def load_clf(self, train_data):
         self.train_recurrent_words = train_data
 
-    def check_similarity(self, params):
+    def check_similarity(self, document):
         """
             Checks the similarity between the training dataset train_lang and the test_words data_set
-        :param params: (train_lang, list of test words)
+        :param document:
         :return:
         """
-        train_lang = params[0]
-        test_words = params[1]
 
-        # Obtain the words count in the training set
-        train_words = [tup[0] for tup in self.train_recurrent_words[train_lang]]
+        similarity_list = []
+        for i, train_lang in enumerate(self.labels):
+            # Obtain the words count in the training set
+            train_words = self.train_recurrent_words[train_lang]
+            _, test_recurrent_words = self.extract_features((i, document))
 
-        # Calculate the similarity
+            # Calculate the similarity
 
-        similarity = 0
-        for w_t in train_words:
-            if w_t in test_words:
-                similarity += 1
+            similarity = 0
+            for w_t in train_words:
+                if w_t in test_recurrent_words:
+                    similarity += 1
 
-        match = similarity / len(train_words)
+            match = similarity / len(train_words)
+            similarity_list.append(match)
 
-        return train_lang, match
+        return softmax(np.array(similarity_list))
 
     def predict(self, document):
 
@@ -132,41 +135,27 @@ class LangClf:
         :return: return the predicted language with its similarity.
         """
 
-        similarity_list = []
+        similarity = self.check_similarity(document)
+        pred_index = similarity.argmax().item()
 
-        # Test procedure
-
-        for train_lang in self.train_recurrent_words.keys():
-            test_recurrent_words = self.extract_features((train_lang, document))
-            test_words = [tup[0] for tup in test_recurrent_words[1]]
-
-            similarity = self.check_similarity((train_lang, test_words))
-            similarity_list.append(similarity)
-
-        most_similar = sorted(similarity_list, key=lambda tup: tup[1], reverse=True)[0]
-
-        return most_similar
+        return self.labels[pred_index]
 
     def _run_test(self, params):
 
-        original = params[0]
-        text = params[1]
-        predicted = self.predict(text)
+        return params[0], self.check_similarity(params[1])
 
-        self.test_results[original] = predicted
+    def test(self, x_test):
 
-        return original, predicted
-
-    def test(self):
-
+        self.test_documents = x_test
         test_list = []
+        p = Pool(5)
 
-        p = Pool(3)
-        for original, txt in zip(self.test_documents.keys(), self.test_documents.values()):
-            test_list.append((original, txt))
-
-        self.test_results = dict(p.map(self._run_test, test_list))
-        return self.test_results
+        for i, txt in enumerate(x_test):
+            test_list.append((i, txt))
+        self.test_results = p.map(self._run_test, test_list)
+        self.test_results = sorted(self.test_results, key=lambda tup: tup[0])
+        predictions = [self.labels[tup[1].argmax().item()] for tup in self.test_results]
+        return predictions
 
     def get_test_results(self):
         return self.test_results
@@ -207,13 +196,6 @@ class LangClf:
     def save_clf(self):
         df = pd.DataFrame(self.train_recurrent_words)
         df.to_csv('top_ranked_words.csv', index=False)
-
-    def get_accuracy(self):
-        for predicted, original in zip(self.test_results.values(), self.test_results.keys()):
-            if sys.intern(predicted[0]) is sys.intern(original):
-                self.hits += 1
-
-        return self.hits / len(self.test_documents.keys())
 
     def get_test_plot(self, title='Test Plot'):
 
@@ -276,7 +258,7 @@ class LangClf:
             df = pd.DataFrame(X_normalized, index=labels, columns=top_tokens, dtype='float32')
             file_name = 'profile_features-' + get_random_string() + '.csv'
             df.to_csv(file_name)
-        return X_normalized
+        return softmax(values)
 
     def run_som(self):
 

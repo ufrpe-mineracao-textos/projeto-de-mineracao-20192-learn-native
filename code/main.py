@@ -2,8 +2,10 @@ import os
 import time
 
 import pandas as pd
+from sklearn.metrics import accuracy_score
 
 from language_clf import LangClf
+import pdb
 
 # --- Tirando referências -----
 
@@ -19,8 +21,8 @@ def load_data(threshold=4):
     :return: the training, test and stem dictionary
     """
 
-    trains = {}
-    testes = {}
+    X_train, y_train = [], []
+    X_test, y_test = [], []
 
     threshold += 40
     stems_dic = pd.read_csv(stems_path, encoding='utf-8').dropna()
@@ -28,10 +30,12 @@ def load_data(threshold=4):
     for name in os.listdir(path):
         label = name.split()[0]
         data = pd.read_csv(path + name, encoding='utf-8').dropna()
-        trains[label] = data[data['Book'] < threshold]['Scripture']
-        testes[label] = data[data['Book'] >= threshold]['Scripture']
+        X_train.append(data[data['Book'] < threshold]['Scripture'].to_numpy())
+        y_train.append(label)
+        X_test.append(data[data['Book'] >= threshold]['Scripture'].to_numpy())
 
-    return stems_dic, trains, testes
+    y_test = y_train
+    return stems_dic, X_train, y_train, X_test, y_test
 
 
 def classify(threshold=4):
@@ -41,53 +45,37 @@ def classify(threshold=4):
     """
     start = time.time()  # initial time
 
-    stems_dic, trains, testes = load_data(threshold)  # Loads the data according to the established threshold in
+    stems_dic, X_train, y_train, X_test, y_test = load_data(
+        threshold)  # Loads the data according to the established threshold in
     # terms of number of books
 
     clf = LangClf(stems_dic)
 
-    clf.fit(trains, testes)  # Fits the Classifier with the training and test set
+    clf.fit(X_train, y_train)  # Fits the Classifier with the training and test set
 
-    # clf.load_clf(pd.read_csv('top_ranked_words.csv', encoding='utf8'))
-
-    results = clf.test()
+    y_pred = clf.test(X_test)
 
     time_taken = (time.time() - start)
-    mean = clf.get_mean_similarity()
-    std = clf.get_std_similarity()
-    accuracy = clf.get_accuracy()
-    train_mean_size = clf.get_train_mean_size()
-    clf.run_som()
+
+    accuracy = accuracy_score(y_test, y_pred)
+    # clf.run_som()
 
     print("Threshold: ", threshold)
-    print("Mean similarity: {:.5f}".format(mean))
-    print("Standard Deviation similarity: {:.5f}".format(std))
     print("Accuracy: ", accuracy)
-    print("Mean train size: {:.5f} words".format(train_mean_size))
-    print("Final time: {:.5f}secs".format(time_taken))
-    print("Train mean size: ", clf.get_train_mean_size())
-    print("Test mean size: ", clf.get_test_mean_size())
-    print(results)
+    print("Final time: {:.5f}min".format(time_taken / 60))
+
     print()
     print('-' * 40)
     print()
     # clf.get_test_plot()
-    return {
-        "mean": mean,
-        "std": std,
-        "accuracy": accuracy,
-        "train_mean_size": train_mean_size,
-        "time_taken": time_taken
-    }
+    return {"Threshold": threshold,
+            "Accuracy": accuracy,
+            "Time": time_taken / 60}
 
 
 def run_experiment():
-    results_tup = []
-    for i in range(1, 2):
-        result = classify(i)
-        results_tup.append((i, result["mean"], result["std"],
-                            result["accuracy"], result["train_mean_size"],
-                            result['time_taken']))
+    for i in range(1, 5):
+        classify(i)
 
 
 def main():
