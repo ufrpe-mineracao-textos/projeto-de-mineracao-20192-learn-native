@@ -26,6 +26,15 @@ def get_random_string(length=5):
     return ''.join([random.choice(letters) for i in range(length)])
 
 
+def preprocess_document(document, stem_list):
+    old_tokens = get_tokens(document)
+
+    train_document = stem_document(' '.join(old_tokens), stem_list)
+
+    new_tokens = train_document.split(' ')
+    return new_tokens
+
+
 class LangClf:
     stem_dic = None
     test_documents = None
@@ -54,6 +63,7 @@ class LangClf:
         self.test_results = {}
         self.words_threshold = words_threshold
         self.number_train_words = []
+        self.labels = []
 
     def extract_features(self, params):
 
@@ -65,11 +75,7 @@ class LangClf:
         """
         train_document = params[1]
         label = params[0]
-        tokens = get_tokens(train_document)
-
-        train_document = stem_document(' '.join(tokens), self.stem_dic[label])
-
-        tokens = train_document.split(' ')
+        tokens = preprocess_document(train_document, list(self.stem_dic[label]))
         words_count = Counter(tokens)
         self.number_train_words.append((label, sum(words_count.values())))
         return label, words_count.most_common(self.words_threshold)
@@ -85,6 +91,7 @@ class LangClf:
         self.test_documents = test_documents
         self.train_documents = train_documents
         p = Pool(5)
+        self.labels = list(train_documents.keys())
 
         self.train_recurrent_words = dict(p.map(self.extract_features, list(self.train_documents.items())))
 
