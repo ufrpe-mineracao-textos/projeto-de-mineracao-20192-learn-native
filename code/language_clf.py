@@ -93,7 +93,7 @@ class LangClf:
 
         self.train_documents = X
         self.labels = y
-        p = Pool(5)
+        p = Pool(3)
         self.train_recurrent_words = dict(p.map(self.extract_features, list(enumerate(X))))
 
     def get_lang_count(self):
@@ -122,8 +122,7 @@ class LangClf:
                 if w_t in test_recurrent_words:
                     similarity += 1
 
-            match = similarity / len(train_words)
-            similarity_list.append(match)
+            similarity_list.append(similarity)
 
         return softmax(np.array(similarity_list))
 
@@ -148,7 +147,7 @@ class LangClf:
 
         self.test_documents = x_test
         test_list = []
-        p = Pool(5)
+        p = Pool(3)
 
         for i, txt in enumerate(x_test):
             test_list.append((i, txt))
@@ -207,17 +206,6 @@ class LangClf:
         filename = title.lower() + str(self.get_mean_similarity()) + '.pdf'
         plt.savefig(Imag_path + filename, dpi=600)
 
-    def save_results(self):
-        file = open('test_results.txt', 'a')
-        file.write("Threshold: " + str(self.words_threshold) + '\n')
-        file.write('-' * 40)
-        file.write("\nMean similarity: " + str(self.get_mean_similarity()))
-        file.write("\nStandard Deviation similarity: " + str(self.get_std_similarity()))
-        file.write("\nAccuracy: " + str(self.get_accuracy()))
-        file.write("\nMean train size: " + str(self.get_train_mean_size()))
-        file.write('-' * 40 + '\n')
-        file.close()
-
     def _prepare_data_to_som(self, save=True):
 
         """
@@ -229,26 +217,29 @@ class LangClf:
         labels = list(self.train_recurrent_words.keys())
         lang_word_freq_dict = {}.fromkeys(labels)
 
-        top_tokens = [tup[0] for word_list in list(self.train_recurrent_words.values())
-                      for tup in word_list]
+        top_tokens = [word for word_list in list(self.train_recurrent_words.values())
+                      for word in word_list]
 
         top_tokens = set(top_tokens)
 
-        for label in self.train_recurrent_words.keys():
+        freq_list = []
+        for i, label in enumerate(self.train_recurrent_words.keys()):
 
             word_freq = {}
 
-            tokens = get_tokens(self.train_documents[label])
+            tokens = get_tokens(self.train_documents[i])
             train_document = stem_document(' '.join(tokens), self.stem_dic[label])
             count = Counter(train_document.split(' '))
 
             for word in top_tokens:
                 try:
                     word_freq[word] = count[word]
+
                 except KeyError:
                     word_freq[word] = 0
 
             lang_word_freq_dict[label] = word_freq
+            freq_list.append(list(word_freq.values()))
         df = pd.DataFrame.from_dict(lang_word_freq_dict).fillna(0)
         values = df.to_numpy()
 
@@ -258,7 +249,8 @@ class LangClf:
             df = pd.DataFrame(X_normalized, index=labels, columns=top_tokens, dtype='float32')
             file_name = 'profile_features-' + get_random_string() + '.csv'
             df.to_csv(file_name)
-        return softmax(values)
+
+        return X_normalized
 
     def run_som(self):
 
@@ -268,15 +260,15 @@ class LangClf:
         :return:
         """
         X_normalized = self._prepare_data_to_som()
-        labels = list(self.train_recurrent_words.keys())
-        n_columns = 400
+
+        n_columns = 600
         n_rows = 400
 
-        colors = random.choices(list(mcolors.CSS4_COLORS.keys()), k=len(labels))
+        colors = random.choices(list(mcolors.CSS4_COLORS.keys()), k=len(self.labels))
 
         som = somoclu.Somoclu(n_columns, n_rows, data=X_normalized)
-        som.train(epochs=100)
+        som.train(epochs=50)
 
         map_filename = "map-" + get_random_string() + '.pdf'
-        som.view_umatrix(bestmatches=True, bestmatchcolors=colors, labels=labels,
+        som.view_umatrix(bestmatches=True, bestmatchcolors=colors, labels=self.labels,
                          filename=map_filename)

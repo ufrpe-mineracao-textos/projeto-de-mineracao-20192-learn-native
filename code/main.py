@@ -58,11 +58,11 @@ def classify(threshold=4):
     time_taken = (time.time() - start)
 
     accuracy = accuracy_score(y_test, y_pred)
-    # clf.run_som()
 
     print("Threshold: ", threshold)
     print("Accuracy: ", accuracy)
     print("Final time: {:.5f}min".format(time_taken / 60))
+    clf.run_som()
 
     print()
     print('-' * 40)
@@ -74,7 +74,7 @@ def classify(threshold=4):
 
 
 def run_experiment():
-    for i in range(1, 5):
+    for i in range(1, 2):
         classify(i)
 
 
