@@ -11,6 +11,7 @@ import pdb
 
 path = r'../Resources/bibles/'
 stems_path = r'../Resources/stems/stems.csv'
+new_dir = r'../Resources/texts/'
 
 
 def load_data(threshold=4):
@@ -35,6 +36,7 @@ def load_data(threshold=4):
         X_test.append(data[data['Book'] >= threshold]['Scripture'].to_numpy())
 
     y_test = y_train
+
     return stems_dic, X_train, y_train, X_test, y_test
 
 
@@ -48,7 +50,6 @@ def classify(threshold=4):
     stems_dic, X_train, y_train, X_test, y_test = load_data(
         threshold)  # Loads the data according to the established threshold in
     # terms of number of books
-
     clf = LangClf(stems_dic)
 
     clf.fit(X_train, y_train)  # Fits the Classifier with the training and test set
