@@ -2,7 +2,7 @@ import random
 import sys
 from collections import Counter
 from multiprocessing.pool import Pool
-
+import pdb
 import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
 import numpy as np
@@ -41,7 +41,7 @@ class LangClf:
     stem_dic = None
     test_documents = None
     number_train_words = None
-    train_documents = None
+    x_train = None
     lang_count_dic = {}
     train_recurrent_words = {}
     test_results = {}
@@ -58,7 +58,7 @@ class LangClf:
             stem_dic = {}
 
         self.hits = 0
-        self.train_documents = {}
+        self.x_train = {}
         self.test_documents = {}
         self.stem_dic = stem_dic
         self.train_recurrent_words = {}
@@ -68,33 +68,36 @@ class LangClf:
         self.labels = []
         self.softmax_list = []
 
-    def extract_features(self, params):
+    def extract_features(self, label_idx, documents):
 
         """
          Creates the profile features of training document obtaining the
          100 most frequent words.
-        :param params: A tuple where the first item is the document label and second the training corpus
-        :return: a tuple of (label, list of 100 most frequent words)
+        :param documents:
+        :param label_idx:
+        :return: list of 100 most frequent words
         """
-        train_document = params[1]
-        doc_id = params[0]
-        tokens = preprocess_document(train_document, list(self.stem_dic[self.labels[doc_id]]))
+
+        tokens = preprocess_document(documents, list(self.stem_dic[self.labels[label_idx]]))
         words_count = Counter(tokens)
-        self.number_train_words.append((doc_id, sum(words_count.values())))
-        return self.labels[doc_id], list(dict(words_count.most_common(self.words_threshold)).keys())
+
+        # self.number_train_words.append((label_idx, sum(words_count.values())))
+        return list(dict(words_count.most_common(self.words_threshold)).keys())
 
     def fit(self, X, y):
         """
         Receives the training set and count the words
+        :param y:
         :param X: The texts list
         key:Language value: text
         :return: nothing
         """
 
-        self.train_documents = X
+        self.x_train = X
         self.labels = y
-        p = Pool(3)
-        self.train_recurrent_words = dict(p.map(self.extract_features, list(enumerate(X))))
+
+        for idx, documents in zip(range(X.shape[0]), X):
+            self.train_recurrent_words[self.labels[idx]] = self.extract_features(idx, documents)
 
     def get_lang_count(self):
         return self.lang_count_dic
@@ -113,13 +116,13 @@ class LangClf:
         for i, train_lang in enumerate(self.labels):
             # Obtain the words count in the training set
             train_words = self.train_recurrent_words[train_lang]
-            _, test_recurrent_words = self.extract_features((i, document))
+            test_recurrent_words = self.extract_features(i, document)
 
             # Calculate the similarity
 
             similarity = 0
-            for w_t in train_words:
-                if w_t in test_recurrent_words:
+            for w_t in test_recurrent_words:
+                if w_t in train_words:
                     similarity += 1
 
             similarity_list.append(similarity)
@@ -133,7 +136,6 @@ class LangClf:
         :param document:
         :return: return the predicted language with its similarity.
         """
-
         similarity = self.check_similarity(document)
         pred_index = similarity.argmax().item()
 
@@ -174,7 +176,7 @@ class LangClf:
         :return: The mean size of the training set in terms of number of words
         """
         sizes = []
-        for text in self.train_documents:
+        for text in self.x_train:
             sizes.append(len(text))
         return np.mean(sizes)
 
@@ -227,7 +229,7 @@ class LangClf:
 
             word_freq = {}
 
-            tokens = get_tokens(self.train_documents[i])
+            tokens = get_tokens(self.x_train[i])
             train_document = stem_document(' '.join(tokens), self.stem_dic[label])
             count = Counter(train_document.split(' '))
 

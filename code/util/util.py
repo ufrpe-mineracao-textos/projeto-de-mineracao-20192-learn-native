@@ -23,12 +23,17 @@ def draw_plot(params):
     plt.show()
 
 
+import pdb
+from tensorflow.keras.preprocessing.text import Tokenizer
+
+
 def get_tokens(document, stop_list=None):
     if stop_list is None:
         stop_list = ['.', '-', '!', '?', '', ',', 'Series([],']
 
     if document is None:
         raise ValueError("Document is None")
+
     tokenizer = RegexpTokenizer(r'\w+', flags=re.UNICODE)
     tokens = tokenizer.tokenize(' '.join(document).lower())
 

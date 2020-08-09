@@ -1,6 +1,7 @@
 import os
-import time
 
+import time
+import numpy as np
 import pandas as pd
 from sklearn.metrics import accuracy_score
 
@@ -14,30 +15,36 @@ stems_path = r'../Resources/stems/stems.csv'
 new_dir = r'../Resources/texts/'
 
 
-def load_data(threshold=4):
+def load_data(training_split=.8, number_documents=100):
     """
      It loads the data according to a given threshold. The threshold will tell us the number of books to be loaded.
      Here the train, test, and stems are loaded.
-    :param threshold: Tells the number of books to be loaded
-    :return: the training, test and stem dictionary
+    :param number_documents: The total number of documents to be retrieved
+    :param training_split: How you want to split them
+    :return: the training set, testing set and stem dictionary
     """
 
-    X_train, y_train = [], []
-    X_test, y_test = [], []
+    x_text, y_text = [], []
 
-    threshold += 40
     stems_dic = pd.read_csv(stems_path, encoding='utf-8').dropna()
+    X_train = []
+    y_train = []
 
-    for name in os.listdir(path):
-        label = name.split()[0]
-        data = pd.read_csv(path + name, encoding='utf-8').dropna()
-        X_train.append(data[data['Book'] < threshold]['Scripture'].to_numpy())
-        y_train.append(label)
-        X_test.append(data[data['Book'] >= threshold]['Scripture'].to_numpy())
+    X_test = []
+    y_test = []
 
-    y_test = y_train
+    for filename in os.listdir(new_dir):
+        file = open(new_dir + filename, encoding='utf-8')
+        text = [line.strip('\n') for line in file.readlines()]
 
-    return stems_dic, X_train, y_train, X_test, y_test
+        text = text[:number_documents]
+        train_size = int(len(text) * training_split)
+        X_train.append(text[:train_size])
+        y_train.append(filename.split('.')[0])
+        X_test.append(text[train_size:])
+        y_test.append(filename.split('.')[0])
+
+    return stems_dic, np.array(X_train), np.array(y_train), np.array(X_test), np.array(y_test)
 
 
 def classify(threshold=4):
@@ -47,13 +54,16 @@ def classify(threshold=4):
     """
     start = time.time()  # initial time
 
-    stems_dic, X_train, y_train, X_test, y_test = load_data(
-        threshold)  # Loads the data according to the established threshold in
+    stems_dic, X_train, y_train, X_test, y_test = load_data(.1)  # Loads the data according to the established
+    print('Train shape: ', X_train.shape)
+    print('X_test shape: ', X_test.shape)
+    # threshold in
     # terms of number of books
     clf = LangClf(stems_dic)
+    print('Fitting the clf...')
 
     clf.fit(X_train, y_train)  # Fits the Classifier with the training and test set
-
+    print('Testing...')
     y_pred = clf.test(X_test)
 
     time_taken = (time.time() - start)

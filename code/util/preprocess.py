@@ -21,6 +21,63 @@ def to_log_file(string):
     file.close()
 
 
+def _get_links(text):
+    soup = BeautifulSoup(text, 'html.parser')
+
+    return soup.find_all('a')
+
+
+def strip_accents(text):
+    """
+    Strip accents from input String.
+
+    :param text: The input string.
+    :type text: String.
+
+    :returns: The processed String.
+    :rtype: String.
+    """
+    try:
+        text = np.unicode(text, 'utf-8')
+    except (TypeError, NameError):  # unicode is a default on python 3
+        pass
+    text = unicodedata.normalize('NFD', text)
+    text = text.encode('ascii', 'ignore')
+    text = text.decode("utf-8")
+
+    return str(text)
+
+
+def generate_pairs(bible_1, bible_2):
+
+    temp = 0
+    total = len(bible_1)
+    pair_text = []
+    for ref in bible_1.iterrows():
+
+        sys.stdout.write('\r' + 'Loading: {:.2f}'.format((temp / total) * 100) + '%')
+        sys.stdout.flush()
+        temp += 1
+        ref = ref[1]
+
+        check = bible_2.loc[
+            (bible_2['Book'] == ref['Book']) &
+            (bible_2['Chapter'] == ref['Chapter']) &
+            (bible_2['Verse'] == ref['Verse'])
+            ]['Scripture'].empty
+
+        if check is not True:
+            verse_2 = bible_2.loc[
+                (bible_2['Book'] == ref['Book']) &
+                (bible_2['Chapter'] == ref['Chapter']) &
+                (bible_2['Verse'] == ref['Verse'])
+                ]['Scripture'].to_string(index=False)
+
+            pair_text.append(ref['Scripture'] + '\t' + verse_2 + '\n')
+    shuffle(pair_text)
+    return pair_text
+
+
 class TextPreprocess:
     datasets = None
     datasets_list = []
@@ -59,11 +116,6 @@ class TextPreprocess:
 
         return self.datasets
 
-    def _get_links(self, text):
-        soup = BeautifulSoup(text, 'html.parser')
-
-        return soup.find_all('a')
-
     def clean_data(self, regex=None, auto_save=True):
 
         if regex is None:
@@ -98,55 +150,6 @@ class TextPreprocess:
         dataset = self.get_datasets()
         return dataset.get_value(dataset_name)
 
-    def strip_accents(self, text):
-        """
-        Strip accents from input String.
-
-        :param text: The input string.
-        :type text: String.
-
-        :returns: The processed String.
-        :rtype: String.
-        """
-        try:
-            text = np.unicode(text, 'utf-8')
-        except (TypeError, NameError):  # unicode is a default on python 3
-            pass
-        text = unicodedata.normalize('NFD', text)
-        text = text.encode('ascii', 'ignore')
-        text = text.decode("utf-8")
-
-        return str(text)
-
-    def generate_pairs(self, bible_1, bible_2):
-
-        temp = 0
-        total = len(bible_1)
-        pair_text = []
-        for ref in bible_1.iterrows():
-
-            sys.stdout.write('\r' + 'Loading: {:.2f}'.format((temp / total) * 100) + '%')
-            sys.stdout.flush()
-            temp += 1
-            ref = ref[1]
-
-            check = bible_2.loc[
-                (bible_2['Book'] == ref['Book']) &
-                (bible_2['Chapter'] == ref['Chapter']) &
-                (bible_2['Verse'] == ref['Verse'])
-                ]['Scripture'].empty
-
-            if check is not True:
-                verse_2 = bible_2.loc[
-                    (bible_2['Book'] == ref['Book']) &
-                    (bible_2['Chapter'] == ref['Chapter']) &
-                    (bible_2['Verse'] == ref['Verse'])
-                    ]['Scripture'].to_string(index=False)
-
-                pair_text.append(ref['Scripture'] + '\t' + verse_2 + '\n')
-        shuffle(pair_text)
-        return pair_text
-
     def get_text_pairs(self):
         self.get_datasets()
 
@@ -157,11 +160,11 @@ class TextPreprocess:
         progress = []
         for p in self.datasets.keys():
             progress.append('#')
-            key = self.strip_accents(p.split(' ')[0]).lower()
-            key += '-' + self.strip_accents('Português - Novo Testamento.csv'.split(' ')[0]).lower()
+            key = strip_accents(p.split(' ')[0]).lower()
+            key += '-' + strip_accents('Português - Novo Testamento.csv'.split(' ')[0]).lower()
             print('\n\n' + p)
             print('Português - Novo Testamento.csv')
-            pair_text = self.generate_pairs(self.datasets[p], self.datasets['Português - Novo Testamento.csv'])
+            pair_text = generate_pairs(self.datasets[p], self.datasets['Português - Novo Testamento.csv'])
 
             self.data_pairs[key] = pair_text
 
